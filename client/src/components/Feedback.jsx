@@ -284,7 +284,7 @@ export default function FeedbackManagement() {
                           {feedback.answer && (
                             <div className="mt-2 sm:mt-4 bg-blue-50 p-2 sm:p-4 border-black">
                               <p className="text-sm sm:text-base text-gray-900">
-                                {feedback.answer}
+                                {decodeHTML(feedback.answer)}
                               </p>
                               <p className="text-xs sm:text-sm text-gray-700 mt-2">
                                 Your response •{" "}

@@ -241,6 +241,13 @@ const PublicWallView = ({ logout }) => {
     );
   }
 
+  const decodeHTML = (str) => {
+    const parser = new DOMParser();
+    return parser.parseFromString(str, "text/html").body.textContent;
+  }
+
+
+
   return (
     <div className="min-h-screen bg-[#fef9f3] text-black font-['Space_Grotesk']">
       {/* Header */}
@@ -385,10 +392,10 @@ const PublicWallView = ({ logout }) => {
                 <div className="space-y-6">
                   {answeredFeedbacks.map((f) => (
                     <div key={f._id} className="border-b-2 border-black pb-4">
-                      <p className="font-semibold">{f.question}</p>
+                      <p className="font-semibold">{decodeHTML(f.question)}</p>
                       {f.answer && (
                         <div className="mt-3 border-l-4 border-black pl-4">
-                          <p>{f.answer}</p>
+                          <p>{decodeHTML(f.answer)}</p>
                         </div>
                       )}
                     </div>
