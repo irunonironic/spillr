@@ -5,9 +5,15 @@ import { FaCheckCircle, FaShareAlt } from "react-icons/fa";
 import { getImageUrl, getInitials } from "../utils/imageHelper";
 
 const ProfileCard = () => {
+
+  const decodeHTML = (str = "") => {
+  if (!str || typeof str !== "string") return "";
+  const txt = document.createElement("textarea");
+  txt.innerHTML = str;
+  return txt.value;
+};
   const { profile, loading, updateProfile } = useUser();
   const { user } = useAuth();
-  const userName = profile?.name || user?.name || "User";
   const [imageKey, setImageKey] = useState(Date.now());
 
   const sharedLink = useMemo(() => {
@@ -24,6 +30,7 @@ const ProfileCard = () => {
     return baseUrl;
   }, [profile?.profilePicture, user?.profilePicture]);
 
+  
   const [imageError, setImageError] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const isVerified = profile?.isVerified || false;
@@ -33,7 +40,9 @@ const ProfileCard = () => {
     setImageKey(Date.now());
   }, [avatarUrl]);
 
-  const userBio = profile?.bio || "";
+ const userName = decodeHTML(profile?.name || user?.name || "User");
+const userBio = decodeHTML(profile?.bio || "");
+
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempBio, setTempBio] = useState(userBio);
@@ -76,7 +85,7 @@ const ProfileCard = () => {
   return (
     <div className="w-full border-2 border-black  ">
       <div
-        className="flex items-center justify-center w-56 h-56 bg-gray-100 overflow-hidden mx-auto rounded-md border border-black mt-4"
+        className="flex items-center justify-center w-56 h-56 bg-gray-100 overflow-hidden mx-auto  border-2 border-black mt-4"
         style={{ fontFamily: "Space Grotesk" }}
       >
         {avatarUrl && !imageError ? (
@@ -119,7 +128,8 @@ const ProfileCard = () => {
             <FaCheckCircle className="h-4 w-4 text-blue-500 mt-1" />
           )}
         </div>
-        {profile?.bio && <p className="text-md text-gray-700">{profile.bio}</p>}
+        {userBio && <p className="text-md text-gray-700">{userBio}</p>}
+
 
 
         <div className="pt-2 border-t border-gray-200 flex flex-row justify-center gap-4">

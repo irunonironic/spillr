@@ -11,8 +11,8 @@ import rateLimit from "express-rate-limit";
 const router = express.Router();
 
 const feedbackLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, 
-  max: 10, 
+  windowMs: 5 * 60 * 1000,
+  max: 10,
   message: { message: "Too many feedback submissions, please try again later" },
 });
 
@@ -65,7 +65,10 @@ router.post("/", feedbackLimiter, async (req, res) => {
     const question = rawQuestion?.trim();
     const wallSlug = rawSlug?.trim()?.toLowerCase();
 
-    console.log('Feedback submission:', { wallSlug, questionLength: question?.length });
+    console.log("Feedback submission:", {
+      wallSlug,
+      questionLength: question?.length,
+    });
 
     if (!validateQuestion(question)) {
       return res.status(400).json({
@@ -79,14 +82,14 @@ router.post("/", feedbackLimiter, async (req, res) => {
     const wall = await Wall.findOne({ slug: wallSlug }).populate("ownerId");
 
     if (!wall) {
-      console.error(' Wall not found:', wallSlug);
+      console.error(" Wall not found:", wallSlug);
       return res.status(404).json({ message: "Wall not found" });
     }
 
-    console.log(' Wall found:', { 
-      wallId: wall._id, 
+    console.log(" Wall found:", {
+      wallId: wall._id,
       ownerId: wall.ownerId?._id,
-      ownerEmail: wall.ownerId?.email 
+      ownerEmail: wall.ownerId?.email,
     });
 
     const submitterIP = getClientIP(req);
@@ -116,7 +119,7 @@ router.post("/", feedbackLimiter, async (req, res) => {
     });
 
     await feedback.save();
-    console.log(' Feedback saved:', feedback._id);
+    console.log(" Feedback saved:", feedback._id);
 
     res.status(201).json(feedback);
 
@@ -130,11 +133,15 @@ router.post("/", feedbackLimiter, async (req, res) => {
     console.log("newFeedback enabled:", owner?.emailNotifications?.newFeedback);
     console.log("Transporter ready:", !!transporter);
 
- if (owner?.email && owner?.emailNotifications?.newFeedback !== false) {
+    if (owner?.email && owner?.emailNotifications?.newFeedback !== false) {
       const mailContent = {
         to: owner.email,
-        subject: 'New message on your Spillr wall',
-        text: `Hi ${owner.name || "there"},\n\nYou just received a new message:\n\n"${question}"\n\nView your feedback: ${process.env.FRONTEND_URL}/dashboard`,
+        subject: "New message on your Spillr wall",
+        text: `Hi ${
+          owner.name || "there"
+        },\n\nYou just received a new message:\n\n"${question}"\n\nView your feedback: ${
+          process.env.FRONTEND_URL
+        }/dashboard`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -145,10 +152,14 @@ router.post("/", feedbackLimiter, async (req, res) => {
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
               <h2 style="color: #000; margin-top: 0;">New Message Received! 📬</h2>
-              <p>Hi <strong>${validator.escape(owner.name || "there")}</strong>,</p>
+              <p>Hi <strong>${validator.escape(
+                owner.name || "there"
+              )}</strong>,</p>
               <p>You just received a new message on your Spillr wall:</p>
               <div style="background-color: #fff; padding: 15px; border-left: 4px solid #000; margin: 20px 0;">
-                <p style="margin: 0; font-style: italic;">"${validator.escape(question)}"</p>
+                <p style="margin: 0; font-style: italic;">"${validator.escape(
+                  question
+                )}"</p>
               </div>
               <p style="text-align: center;">
                 <a href="${process.env.FRONTEND_URL}/dashboard" 
@@ -159,22 +170,23 @@ router.post("/", feedbackLimiter, async (req, res) => {
               <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
               <p style="font-size: 12px; color: #666;">
                 You can disable these notifications in your 
-                <a href="${process.env.FRONTEND_URL}/settings" style="color: #000;">account settings</a>.
+                <a href="${
+                  process.env.FRONTEND_URL
+                }/settings" style="color: #000;">account settings</a>.
               </p>
             </div>
           </body>
           </html>
-        `
+        `,
       };
 
       const emailResult = await sendEmail(mailContent);
       if (emailResult.success) {
-        console.log('Notification email sent');
+        console.log("Notification email sent");
       } else {
-        console.error('Failed to send notification email:', emailResult.error);
+        console.error("Failed to send notification email:", emailResult.error);
       }
     }
-
   } catch (err) {
     console.error("Feedback submission error:", err.message);
     res.status(500).json({ message: "Unable to submit feedback" });
@@ -207,20 +219,24 @@ router.get("/owner/:slug", authMiddleware, async (req, res) => {
     switch (sort) {
       case "answered":
         filter.isAnswered = true;
-        filter.isArchived = false;
+        filter.isArchived = false; 
         sortOption = { updatedAt: -1 };
+        //console.log('Filtering for answered (non-archived)');
         break;
       case "archived":
-        filter.isArchived = true;
+        filter.isArchived = true; 
         sortOption = { updatedAt: -1 };
+        //console.log(' Filtering for archived');
         break;
       case "active":
       default:
         filter.isAnswered = false;
-        filter.isArchived = false;
+        filter.isArchived = false; 
         sortOption = { createdAt: -1 };
+       // console.log(' Filtering for active (unanswered, non-archived)');
         break;
     }
+
 
     const [feedbacks, totalFeedbacks] = await Promise.all([
       Feedback.find(filter)
@@ -234,6 +250,7 @@ router.get("/owner/:slug", authMiddleware, async (req, res) => {
     const answeredCount = await Feedback.countDocuments({
       wallId: wall._id,
       isAnswered: true,
+      isArchived:false,
     });
     const archivedCount = await Feedback.countDocuments({
       wallId: wall._id,
@@ -241,10 +258,10 @@ router.get("/owner/:slug", authMiddleware, async (req, res) => {
     });
     const totalCount = await Feedback.countDocuments({ wallId: wall._id });
     const activeCount = await Feedback.countDocuments({
-  wallId: wall._id,
-  isAnswered: false,
-  isArchived: false,
-});
+      wallId: wall._id,
+      isAnswered: false,
+      isArchived: false,
+    });
     const answerRate = totalCount
       ? Math.round((answeredCount / totalCount) * 100)
       : 0;
@@ -360,46 +377,76 @@ router.get("/wall/:slug", async (req, res) => {
     if (!validateSlug(slug)) {
       return res.status(400).json({ message: "Invalid wall slug format" });
     }
-
     const wall = await Wall.findOne({ slug });
     if (!wall) {
       return res.status(404).json({ message: "Wall not found" });
     }
+    const page = Math.max(1, parseInt(req.query.page, 10)) || 1;
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10))) || 10;
+    const skip = (page - 1) * limit;
 
-    const feedbacks = await Feedback.find({
+    const filter = {
       wallId: wall._id,
       isAnswered: true,
       isArchived: false,
-    })
-      .select("-__v -updatedAt")
-      .sort({ updatedAt: -1 })
-      .limit(100); // Prevent large responses
-
-    res.json({ feedbacks });
+    };
+   const [feedbacks, totalCount] = await Promise.all([
+      Feedback.find(filter)
+        .select("-__v -updatedAt")
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Feedback.countDocuments(filter),
+    ]);
+   const totalPages = Math.ceil(totalCount / limit);
+    res.json({
+      feedbacks,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalFeedbacks: totalCount,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (err) {
+    console.error("Error fetching public feedback:", err);
     res.status(500).json({ message: "Unable to fetch feedback" });
   }
 });
 
+
+
+
 router.patch("/:id/archive", authMiddleware, async (req, res) => {
   try {
-    const { archived = true } = req.body;
-
+    const { archived } = req.body; 
+    
     const feedback = await Feedback.findById(req.params.id).populate("wallId");
-    if (!feedback)
+    
+    if (!feedback) {
       return res.status(404).json({ message: "Feedback not found" });
+    }
 
-    if (feedback.wallId.ownerId.toString() !== req.user.id)
+    if (feedback.wallId.ownerId.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
+    }
 
-    feedback.isArchived = archived;
+    feedback.isArchived = archived !== undefined ? archived : true;
     await feedback.save();
 
+
     res.json({
-      message: archived ? "Feedback archived" : "Feedback unarchived",
+      message: feedback.isArchived ? "Feedback archived" : "Feedback unarchived",
+      feedback: {
+        _id: feedback._id,
+        isArchived: feedback.isArchived,
+        isAnswered: feedback.isAnswered
+      }
     });
   } catch (err) {
-    console.error("Archive feedback error:", err);
+    console.error(" Archive feedback error:", err);
     res.status(500).json({ message: "Unable to update archive status" });
   }
 });

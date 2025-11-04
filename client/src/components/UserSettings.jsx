@@ -21,7 +21,7 @@ import {
 import Footer from "./Footer";
 import { getImageUrl } from "../utils/imageHelper";
 import toast from "react-hot-toast";
-
+import ImageCropperModal from "./ImageCropperModal";
 
 const UserSettings = () => {
   const navigate = useNavigate();
@@ -74,19 +74,23 @@ const UserSettings = () => {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
 
-  useEffect(() => {
-    if (profile) {
-      setProfileData({
-        name: profile.name || "",
-        username: profile.username || "",
-        bio: profile.bio || "",
-      });
-      setNotifications({
-        newFeedback: profile.emailNotifications?.newFeedback ?? false,
-      });
-    }
-  }, [profile]);
+
+ useEffect(() => {
+  if (profile) {
+    setProfileData({
+      name: decodeHTML(profile.name || ""),
+      username: profile.username || "",
+      bio: decodeHTML(profile.bio || ""),
+    });
+    setNotifications({
+      newFeedback: profile.emailNotifications?.newFeedback ?? false,
+    });
+  }
+}, [profile]);
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -95,61 +99,57 @@ const UserSettings = () => {
     { id: "danger", label: "Delete Account", icon: AlertTriangle },
   ];
 
+ const decodeHTML = (str = "") => {
+  if (typeof str !== "string") return "";
+  const txt = document.createElement("textarea");
+  txt.innerHTML = str;
+  return txt.value;
+};
+
+
   const handleProfileChange = (field) => (e) => {
     setProfileData((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-const handleProfilePictureChange = async (e) => {
+const handleProfilePictureChange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (!file.type.startsWith('image/')) {
-   // alert('Please select an image file');
+  if (!file.type.startsWith("image/")) {
+    toast.error("Please select an image file");
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    //alert('File size must be less than 5MB');
+    toast.error("File must be under 5MB");
     return;
   }
 
-  
-  if (previewImage) {
-    URL.revokeObjectURL(previewImage);
-  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    setSelectedFile(file);
+    setCropImageSrc(reader.result);
+    setShowCropper(true);
+  };
+  reader.readAsDataURL(file);
+};
 
-  const localPreview = URL.createObjectURL(file);
-  setPreviewImage(localPreview);
+const handleCropConfirm = async (blob) => {
+  setShowCropper(false);
   setUploadingImage(true);
 
   try {
-    const response = await uploadProfilePicture(file);
-    console.log('Upload response:', response);
-    
-    
-    setImageTimestamp(Date.now());
-    
-    // Wait a bit for Cloudinary to propagate
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Reload profile
+    // Convert blob -> File for Cloudinary
+    const croppedFile = new File([blob], selectedFile.name, { type: "image/jpeg" });
+    await uploadProfilePicture(croppedFile); // ⬅️ your existing Cloudinary upload
     await reloadProfile();
-    
-    // Clear preview after successful upload
-    URL.revokeObjectURL(localPreview);
-    setPreviewImage(null);
-    
-    //alert('Profile picture updated successfully!');
+    setImageTimestamp(Date.now());
   } catch (err) {
-    console.error('Upload error:', err);
-   // alert('Failed to upload image. Please try again.');
-    
-    // Revert preview on error
-    URL.revokeObjectURL(localPreview);
-    setPreviewImage(null);
+    console.error("Crop upload failed:", err);
   } finally {
     setUploadingImage(false);
-    e.target.value = ''; // Reset file input
+    setCropImageSrc(null);
+    setSelectedFile(null);
   }
 };
 
@@ -301,7 +301,7 @@ const handleDeleteAccountNow = () => {
 
           <button
             onClick={() => navigate("/dashboard")}
-            className="px-6 py-2 bg-black text-white font-light shadow-[3px_3px_0_0_#000] hover:bg-yellow-300 hover:text-black transition"
+            className="px-6 py-2 bg-black text-white font-light shadow-[3px_3px_0_0_#000] hover:bg-yellow-200 hover:text-black transition"
           >
             Go Back
           </button>
@@ -405,7 +405,7 @@ const handleDeleteAccountNow = () => {
                     <input
                       type="text"
                       placeholder="Your name"
-                      value={profileData.name}
+                       value={decodeHTML(profileData.name) || ""}
                       onChange={handleProfileChange("name")}
                       className="flex h-12 w-full  shadow-card  shadow-[2px_2px_0_0_#000] border border-input bg-input  pl-2 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                     />
@@ -432,7 +432,7 @@ const handleDeleteAccountNow = () => {
                     </label>
                     <textarea
                       placeholder="Tell people about yourself..."
-                      value={profileData.bio}
+                      value={decodeHTML(profileData.bio) || ""}
                       onChange={handleProfileChange("bio")}
                       rows={4}
                       className="w-full px-3 py-2 border border  shadow-card  shadow-[2px_2px_0_0_#000] border border-input bg-input  pl-2 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
@@ -624,6 +624,14 @@ const handleDeleteAccountNow = () => {
             )}
           </div>
         </div>
+        {showCropper && cropImageSrc && (
+  <ImageCropperModal
+    imageSrc={cropImageSrc}
+    onCancel={() => setShowCropper(false)}
+    onConfirm={handleCropConfirm}
+  />
+)}
+
       </div>
       <Footer />
     </div>

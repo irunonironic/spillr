@@ -13,14 +13,16 @@ export const feedbackService = {
     }
   },
 
-  getPublic: async (slug) => {
-    try {
-      return await apiRequest(`/api/feedback/wall/${slug}`);
-    } catch (error) {
-      console.error('Get public feedback error:', error);
-      throw error;
-    }
-  },
+ getPublic: async (slug, params = {}) => {
+  try {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `/api/feedback/wall/${slug}${queryString ? `?${queryString}` : ""}`;
+    return await apiRequest(url);
+  } catch (error) {
+    console.error("Get public feedback error:", error);
+    throw error;
+  }
+},
 
   getForOwner: async (slug, params = {}) => {
   try {
@@ -36,7 +38,6 @@ export const feedbackService = {
     throw error;
   }
 },
-
 
   answer: async (feedbackId, answer) => {
     try {
@@ -70,6 +71,24 @@ export const feedbackService = {
       });
     } catch (error) {
       console.error('Archive feedback error:', error);
+      throw error;
+    }
+  },
+
+
+  archive: async (feedbackId, archived = true) => {
+    try {
+
+      const response = await apiRequest(`/api/feedback/${feedbackId}/archive`, {
+        method: 'PATCH',
+        body: JSON.stringify({ archived: archived }) 
+      });
+
+      //console.log('Archive response:', response);
+      
+      return response;
+    } catch (error) {
+      //console.error(' Archive feedback error:', error);
       throw error;
     }
   },

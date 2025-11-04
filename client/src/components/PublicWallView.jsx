@@ -6,6 +6,13 @@ import { useAuth } from "../hooks/useAuth";
 import { getImageUrl, getInitials } from "../utils/imageHelper";
 
 const PublicWallView = ({ logout }) => {
+  const decodeHTML = (str = "") => {
+  if (!str || typeof str !== "string") return "";
+  const txt = document.createElement("textarea");
+  txt.innerHTML = str;
+  return txt.value;
+};
+
   const { user, isAuthenticated } = useAuth();
   const handleNavigation = (path) => navigate(path);
   const { slug } = useParams();
@@ -20,6 +27,13 @@ const PublicWallView = ({ logout }) => {
   const [sent, setSent] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+ 
   const [activeItem, setActiveItem] = useState(
     isAuthenticated ? "Dashboard" : "Register"
   );
@@ -44,15 +58,15 @@ const PublicWallView = ({ logout }) => {
   const getNavItems = (loggedIn) =>
     loggedIn
       ? [
-        { label: "Home", onClick: () => handleNavigation("/") },
-        { label: "Dashboard", onClick: () => handleNavigation("/dashboard") },
-        { label: "Settings", onClick: () => handleNavigation("/settings") },
-      ]
+          { label: "Home", onClick: () => handleNavigation("/") },
+          { label: "Dashboard", onClick: () => handleNavigation("/dashboard") },
+          { label: "Settings", onClick: () => handleNavigation("/settings") },
+        ]
       : [
-        { label: "Home", onClick: () => handleNavigation("/") },
-        { label: "Register", onClick: () => handleNavigation("/register") },
-        { label: "Login", onClick: () => handleNavigation("/login") },
-      ];
+          { label: "Home", onClick: () => handleNavigation("/") },
+          { label: "Register", onClick: () => handleNavigation("/register") },
+          { label: "Login", onClick: () => handleNavigation("/login") },
+        ];
 
   const items = getNavItems(isAuthenticated);
 
@@ -69,7 +83,6 @@ const PublicWallView = ({ logout }) => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-
   const fetchUserProfile = useCallback(async () => {
     if (!slug) return;
 
@@ -79,12 +92,14 @@ const PublicWallView = ({ logout }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setUserProfile(data);
+         //console.log("PublicWallView fetched data:", data);
+
+        setUserProfile({
+          ...data,
+          name: decodeHTML(data.name || ""),
+          bio: decodeHTML(data.bio || ""),
+        });
         setError("");
-      } else {
-        const errorData = await response.json();
-        console.error("Wall not found:", errorData.error);
-        setError(errorData.error || "Wall not found");
       }
     } catch (err) {
       console.error("Failed to fetch profile:", err);
@@ -94,26 +109,46 @@ const PublicWallView = ({ logout }) => {
     }
   }, [slug, API_BASE_URL]);
 
-  const fetchAnsweredFeedback = useCallback(async () => {
-    if (!slug) return;
+  const fetchAnsweredFeedback = useCallback(
+    async (page = 1) => {
+      if (!slug) return;
 
-    try {
-      setLoadingFeedback(true);
-      const response = await fetch(
-        `${API_BASE_URL}/api/feedback/wall/${slug}`
-      );
+      try {
+        setLoadingFeedback(true);
+        const response = await fetch(
+          `${API_BASE_URL}/api/feedback/wall/${slug}?page=${page}&limit=10`
+        );
 
-      if (response.ok) {
-        const data = await response.json();
-        setAnsweredFeedbacks(data.feedbacks || []);
-        setLastUpdate(new Date());
+        if (response.ok) {
+          const data = await response.json();
+          setAnsweredFeedbacks(data.feedbacks || []);
+          setPagination(
+            data.pagination || {
+              currentPage: 1,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPrevPage: false,
+            }
+          );
+          setLastUpdate(new Date());
+        }
+      } catch (err) {
+        console.error("Failed to fetch feedback:", err);
+      } finally {
+        setLoadingFeedback(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch feedback:", err);
-    } finally {
-      setLoadingFeedback(false);
+    },
+    [slug, API_BASE_URL]
+  );
+
+   const handlePageChange = useCallback(
+  (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchAnsweredFeedback(newPage);
     }
-  }, [slug, API_BASE_URL]);
+  },
+  [fetchAnsweredFeedback, pagination.totalPages]
+);
 
   useEffect(() => {
     if (slug) {
@@ -122,12 +157,11 @@ const PublicWallView = ({ logout }) => {
     }
   }, [slug, fetchUserProfile, fetchAnsweredFeedback]);
 
-
   useEffect(() => {
     if (!slug) return;
 
     const intervalId = setInterval(() => {
-      console.log(' Auto-refreshing public feedback...');
+      console.log(" Auto-refreshing public feedback...");
       fetchAnsweredFeedback();
     }, 20000); // 20 seconds
 
@@ -139,9 +173,8 @@ const PublicWallView = ({ logout }) => {
     setIsRefreshing(true);
     try {
       await fetchAnsweredFeedback();
-
     } catch (err) {
-      console.error('Refresh failed:', err);
+      console.error("Refresh failed:", err);
     } finally {
       setIsRefreshing(false);
     }
@@ -188,11 +221,9 @@ const PublicWallView = ({ logout }) => {
       setSent(true);
       setFormData({ question: "" });
 
-
       setTimeout(() => {
         fetchAnsweredFeedback();
       }, 3000);
-
     } catch (err) {
       console.error("Failed to send message:", err);
       setError(err.message || "Failed to send message. Please try again.");
@@ -241,12 +272,6 @@ const PublicWallView = ({ logout }) => {
     );
   }
 
-  const decodeHTML = (str) => {
-    const parser = new DOMParser();
-    return parser.parseFromString(str, "text/html").body.textContent;
-  }
-
-
 
   return (
     <div className="min-h-screen bg-[#fef9f3] text-black font-['Space_Grotesk']">
@@ -277,10 +302,11 @@ const PublicWallView = ({ logout }) => {
                 onClick={() => handleItemClick(item)}
                 onMouseEnter={() => updateIndicator(item.label)}
                 onMouseLeave={() => updateIndicator(activeItem)}
-                className={`px-3 py-2 text-sm tracking-wide transition-colors duration-200 ${activeItem === item.label
-                  ? "text-black"
-                  : "text-black hover:text-gray-800"
-                  }`}
+                className={`px-3 py-2 text-sm tracking-wide transition-colors duration-200 ${
+                  activeItem === item.label
+                    ? "text-black"
+                    : "text-black hover:text-gray-800"
+                }`}
               >
                 {item.label}
               </button>
@@ -297,16 +323,16 @@ const PublicWallView = ({ logout }) => {
               {userProfile?.profilePicture && !imageError ? (
                 <img
                   src={getImageUrl(userProfile.profilePicture)}
-                  alt={userProfile.name || 'Profile picture'}
+                  alt={userProfile.name || "Profile picture"}
                   className="w-full h-full object-cover"
                   onError={() => {
-                    console.error('Public wall image failed to load');
+                    console.error("Public wall image failed to load");
                     setImageError(true);
                   }}
                 />
               ) : (
                 <span className="text-4xl font-extrabold">
-                  {getInitials(userProfile?.name || 'User')}
+                  {getInitials(decodeHTML(userProfile?.name || "User"))}
                 </span>
               )}
             </div>
@@ -317,6 +343,7 @@ const PublicWallView = ({ logout }) => {
                 {userProfile.bio}
               </p>
             )}
+
             <span className="text-sm font-medium mt-2">@{slug}</span>
           </div>
         </div>
@@ -351,7 +378,11 @@ const PublicWallView = ({ logout }) => {
                 type="submit"
                 disabled={loading || !formData.question.trim()}
                 className={`border-1 border-black px-6 py-3 font-bold shadow-[4px_4px_0_0_#000] transition
-                  ${sent ? "bg-green-400 text-black" : "bg-black text-white hover:bg-yellow-200 hover:text-black"}
+                  ${
+                    sent
+                      ? "bg-green-400 text-black"
+                      : "bg-black text-white hover:bg-yellow-200 hover:text-black"
+                  }
                   disabled:opacity-50`}
               >
                 <span>{sent ? "Sent" : loading ? "Sending..." : "Send"}</span>
@@ -364,62 +395,101 @@ const PublicWallView = ({ logout }) => {
             – Messages appear only after being answered.
           </p>
         </div>
+      
 
         {/* Answered Messages Section */}
-        {answeredFeedbacks.length > 0 ? (
-          <div className="border-4 border-black bg-white p-10 shadow-[8px_8px_0_0_#000]">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-black">Answered Messages</h3>
-              <button
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className="p-2 border-2 border-black bg-white hover:bg-gray-50 disabled:opacity-50"
-                title="Refresh messages"
-              >
-                <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+         <div className="border-4 border-black bg-white p-10 shadow-[8px_8px_0_0_#000]">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-black">Answered Messages</h3>
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="p-2 border-2 border-black bg-white hover:bg-gray-50 disabled:opacity-50"
+              title="Refresh messages"
+            >
+              <RefreshCw
+                className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
 
-            {loadingFeedback && answeredFeedbacks.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto" />
+          {loadingFeedback && answeredFeedbacks.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : answeredFeedbacks.length > 0 ? (
+            <>
+              <div className="text-xs text-gray-500 mb-4 text-right">
+                Last updated: {lastUpdate.toLocaleTimeString()}
               </div>
-            ) : (
-              <>
-                <div className="text-xs text-gray-500 mb-4 text-right">
-                  Last updated: {lastUpdate.toLocaleTimeString()}
+
+              <div className="space-y-6">
+                {answeredFeedbacks.map((f) => (
+                  <div key={f._id} className="border-b-2 border-black pb-4">
+                    <p className="font-semibold">{decodeHTML(f.question)}</p>
+                    {f.answer && (
+                      <div className="mt-3 border-l-4 border-black pl-4">
+                        <p>{decodeHTML(f.answer)}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-6">
+                  <button
+                    onClick={() =>
+                      handlePageChange(pagination.currentPage - 1)
+                    }
+                    disabled={!pagination.hasPrevPage}
+                    className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 disabled:opacity-50 shadow-[3px_3px_0_0_#000]"
+                  >
+                    Prev
+                  </button>
+
+                  <span className="text-sm font-medium">
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      handlePageChange(pagination.currentPage + 1)
+                    }
+                    disabled={!pagination.hasNextPage}
+                    className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 disabled:opacity-50 shadow-[3px_3px_0_0_#000]"
+                  >
+                    Next
+                  </button>
                 </div>
-                <div className="space-y-6">
-                  {answeredFeedbacks.map((f) => (
-                    <div key={f._id} className="border-b-2 border-black pb-4">
-                      <p className="font-semibold">{decodeHTML(f.question)}</p>
-                      {f.answer && (
-                        <div className="mt-3 border-l-4 border-black pl-4">
-                          <p>{decodeHTML(f.answer)}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="border-4 border-black bg-white p-12 text-center shadow-[8px_8px_0_0_#000]">
-            <MessageCircle className="w-16 h-16 mx-auto mb-4 text-black" />
-            <h3 className="text-xl font-black mb-2">
-              No answered messages yet
-            </h3>
-            <p className="text-base">
-              {userProfile?.name || "This user"} hasn't answered any messages yet.
-            </p>
-          </div>
-        )}
+              )}
+            </>
+          ) : (
+            <div className="text-center py-10">
+              <MessageCircle className="w-16 h-16 mx-auto mb-4 text-black" />
+              <h3 className="text-xl font-black mb-2">
+                No answered messages yet
+              </h3>
+              <p className="text-base">
+                {userProfile?.name || "This user"} hasn’t answered any messages
+                yet.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       <Footer />
     </div>
   );
+};
+
+// ✅ Add this just above the return if it’s missing
+const handlePageChange = (newPage) => {
+  if (newPage >= 1 && newPage <= pagination.totalPages) {
+    fetchAnsweredFeedback(newPage);
+  }
 };
 
 export default PublicWallView;

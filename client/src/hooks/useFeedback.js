@@ -1,6 +1,5 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { feedbackService } from "../services/feedbackService.js";
-
 
 export const useFeedbackSubmission = (wallSlug) => {
   const [formData, setFormData] = useState({ question: "" });
@@ -62,7 +61,6 @@ export const useFeedbackSubmission = (wallSlug) => {
     maxCharacters: 1000,
   };
 };
-
 
 export const usePublicFeedback = (wallSlug) => {
   const [feedbacks, setFeedbacks] = useState([]);
@@ -132,15 +130,31 @@ export const useOwnerFeedback = (slug) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const isFetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
+  const lastFetchParamsRef = useRef(null);
+
   const fetchFeedback = useCallback(async () => {
     if (!slug) return;
+    
+    // Create params string for comparison
+    const currentParams = JSON.stringify({ slug, ...filters });
+    
+    // Prevent duplicate fetches with same params
+    if (isFetchingRef.current && currentParams === lastFetchParamsRef.current) {
+      console.log('⏭️ Skipping duplicate feedback fetch');
+      return;
+    }
+    
     try {
+      isFetchingRef.current = true;
+      lastFetchParamsRef.current = currentParams;
       setLoading(true);
       setError(null);
+      
       const data = await feedbackService.getForOwner(slug, filters);
       setFeedbacks(data.feedbacks || []);
       setPagination(data.pagination || {});
-      // Get stats from backend response instead of computing locally
       setStats(data.stats || {
         total: 0,
         answered: 0,
@@ -148,16 +162,23 @@ export const useOwnerFeedback = (slug) => {
         active: 0,
         answerRate: 0,
       });
+      hasFetchedRef.current = true;
     } catch (error) {
       setError(error.message);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [slug, filters.sort, filters.page, filters.limit, filters.search]);
 
+  // Only fetch once on mount or when filters change
   useEffect(() => {
-    fetchFeedback();
-  }, [fetchFeedback]);
+    const timeoutId = setTimeout(() => {
+      fetchFeedback();
+    }, 100); // Small debounce to batch rapid changes
+    
+    return () => clearTimeout(timeoutId);
+  }, [slug, filters.sort, filters.page, filters.limit, filters.search]);
 
   const updateFilters = useCallback((newFilters) => {
     setFilters((prev) => ({
@@ -167,11 +188,9 @@ export const useOwnerFeedback = (slug) => {
     }));
   }, []);
 
-const changePage = (newPage) => {
-  setFilters(prev => ({ ...prev, page: newPage }));
-  
-};
-
+  const changePage = useCallback((newPage) => {
+    setFilters(prev => ({ ...prev, page: newPage }));
+  }, []);
 
   const answerFeedback = useCallback(async (feedbackId, answer) => {
     try {
@@ -189,9 +208,16 @@ const changePage = (newPage) => {
     async (feedbackId, archived = true) => {
       try {
         await feedbackService.archive(feedbackId, archived);
-        if (filters.sort !== "archived") {
+        
+        // Remove from current list if moving to different state
+        if (archived && filters.sort !== "archived") {
+          // Moving TO archive from active/answered
+          setFeedbacks((prev) => prev.filter((f) => f._id !== feedbackId));
+        } else if (!archived && filters.sort === "archived") {
+          // Moving FROM archive to active/answered
           setFeedbacks((prev) => prev.filter((f) => f._id !== feedbackId));
         } else {
+          // Refresh to get updated state
           fetchFeedback();
         }
       } catch (error) {
@@ -217,7 +243,7 @@ const changePage = (newPage) => {
   };
 };
 
-
+// FIXED: Export useFeedbackAnswer
 export const useFeedbackAnswer = () => {
   const [formData, setFormData] = useState({ answer: "" });
   const [errors, setErrors] = useState({});

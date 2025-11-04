@@ -28,31 +28,26 @@
 }
 
 ::-webkit-scrollbar {
-  width: 6px;               
-  height: 6px;              
+  width: 2px;               
+  height: 2px;              
 }
 
 ::-webkit-scrollbar-track {
-  background: #fff;          
-  border-left: 1px solid #000;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #000;          
-  border: none;             
-  border-radius: 0;          
+  background: #000;              
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #222;          
+  background: #333;         
 }
 * {
   scrollbar-width: thin;           
-  scrollbar-color: #000 #fff;      
+  scrollbar-color: #000 transparent;      
 }
 
-/* client/src/App.css or client/src/index.css */
-/* ADD THESE STYLES FOR MODAL BEHAVIOR */
 
 /* Prevent background scroll when modal is open */
 body.modal-open {
