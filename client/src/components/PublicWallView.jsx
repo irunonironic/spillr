@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Send, MessageCircle, RefreshCw } from "lucide-react";
 import Footer from "./Footer";
 import { useAuth } from "../hooks/useAuth";
-import { getImageUrl, getInitials } from "../utils/imageHelper";
-
+import DynamicMeta from './DynamicMeta';
+import { getOGImageUrl } from '../utils/cloudinaryOG';
+import { getImageUrl } from "../utils/imageHelper";
 const PublicWallView = ({ logout }) => {
   const decodeHTML = (str = "") => {
   if (!str || typeof str !== "string") return "";
@@ -40,6 +41,19 @@ const PublicWallView = ({ logout }) => {
   const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
   const [imageError, setImageError] = useState(false);
   const navRefs = useRef({});
+
+  const ogTitle = userProfile?.name 
+  ? `${userProfile.name} (@${slug}) - Spillr`
+  : `@${slug} - Spillr`;
+
+const ogDescription = userProfile?.bio 
+  ? `${userProfile.bio} | Send anonymous messages to ${userProfile.name} on Spillr`
+  : `Send anonymous messages to @${slug} on Spillr. Share your thoughts anonymously and get real feedback.`;
+
+const ogImage = userProfile ? getOGImageUrl(userProfile) : '/og-image.png';
+
+const ogUrl = `${window.location.origin}/wall/${slug}`;
+
 
   const updateIndicator = (label) => {
     const el = navRefs.current[label];
@@ -275,6 +289,12 @@ const PublicWallView = ({ logout }) => {
 
   return (
     <div className="min-h-screen bg-[#fef9f3] text-black font-['Space_Grotesk']">
+      <DynamicMeta 
+      title={ogTitle}
+      description={ogDescription}
+      image={ogImage}
+      url={ogUrl}
+    />
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 flex items-center bg-yellow-200 border-b-1 border-black h-16 z-50">
         <div className="w-full flex justify-between items-center px-4">
@@ -302,7 +322,7 @@ const PublicWallView = ({ logout }) => {
                 onClick={() => handleItemClick(item)}
                 onMouseEnter={() => updateIndicator(item.label)}
                 onMouseLeave={() => updateIndicator(activeItem)}
-                className={`px-3 py-2 text-sm tracking-wide transition-colors duration-200 ${
+                className={`px-4 py-1 pr-4 text-sm tracking-wide transition-colors duration-200 ${
                   activeItem === item.label
                     ? "text-black"
                     : "text-black hover:text-gray-800"
@@ -420,7 +440,6 @@ const PublicWallView = ({ logout }) => {
           ) : answeredFeedbacks.length > 0 ? (
             <>
               <div className="text-xs text-gray-500 mb-4 text-right">
-                Last updated: {lastUpdate.toLocaleTimeString()}
               </div>
 
               <div className="space-y-6">

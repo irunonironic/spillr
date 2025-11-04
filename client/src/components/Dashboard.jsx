@@ -7,9 +7,25 @@ import Footer from "./Footer";
 export default function Navbar() {
   const { user, logout, setAuthMode } = useAuth();
   const [activeItem, setActiveItem] = useState(user ? "Messages" : "Register");
+  const [isVisible, setIsVisible] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
+  const [isReady, setIsReady] = useState(false);
+
   const navRefs = useRef({});
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      const timer = setTimeout(() => {
+        setIsReady(true);
+        requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
 
   const updateIndicator = (label) => {
     const el = navRefs.current[label];

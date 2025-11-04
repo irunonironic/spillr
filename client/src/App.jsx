@@ -1,6 +1,6 @@
 // App.jsx
-import { Routes, Route, Navigate } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect, useState } from "react";
 import AuthRoute from "./components/AuthRoute";
 import "./App.css";
 import LoadingSpinner from "./components/Loading";
@@ -16,25 +16,85 @@ import "@fontsource/ibm-plex-mono/700.css"
 const Home = lazy(() => import("./pages/Home"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 
+function PageTransition({ children }) {
+  const location = useLocation();
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [transitionStage, setTransitionStage] = useState("fadeIn");
+
+  useEffect(() => {
+    if (location !== displayLocation) {
+      setTransitionStage("fadeOut");
+    }
+  }, [location, displayLocation]);
+
+  return (
+    <div
+      className={`page-transition ${transitionStage}`}
+      onAnimationEnd={() => {
+        if (transitionStage === "fadeOut") {
+          setTransitionStage("fadeIn");
+          setDisplayLocation(location);
+        }
+      }}
+      style={{
+        animation: transitionStage === "fadeOut" 
+          ? "fadeOut 0.15s ease-out forwards" 
+          : "fadeIn 0.3s ease-out forwards"
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Routes>
-      
-        <Route path="/" element={<Home />} />
-        <Route path="/reset-password" element={<ResetPasswordForm />} />
+    <>
+      <style>{`
+        @keyframes fadeOut {
+          from { opacity: 1; transform: translateY(0); }
+          to { opacity: 0; transform: translateY(-10px); }
+        }
         
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .page-transition {
+          width: 100%;
+          min-height: 100vh;
+        }
+      `}</style>
       
-        <Route path="/wall/:slug" element={<PublicWallView />} />
-      
-        <Route element={<AuthRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/reset-password" element={<ResetPasswordForm />} />
+          <Route path="/wall/:slug" element={<PublicWallView />} />
+          
+          <Route element={<AuthRoute />}>
+            <Route 
+              path="/dashboard" 
+              element={
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <PageTransition>
+                  <Settings />
+                </PageTransition>
+              } 
+            />
+          </Route>
 
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }

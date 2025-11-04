@@ -19,7 +19,7 @@ export const getImageUrl = (imagePath) => {
     return `${baseUrl}${imagePath}`;
   }
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL 
   const cleanPath = imagePath.replace(/^\/+/, '');
   const finalUrl = `${baseUrl}/${cleanPath}`;
   //console.log('Returning local URL:', finalUrl);

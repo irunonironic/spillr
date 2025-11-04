@@ -105,6 +105,8 @@ export const usePublicFeedback = (wallSlug) => {
   };
 };
 
+const feedbackCache = new Map();
+const CACHE_DURATION = 30000; 
 export const useOwnerFeedback = (slug) => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [pagination, setPagination] = useState({
@@ -131,28 +133,68 @@ export const useOwnerFeedback = (slug) => {
   const [error, setError] = useState(null);
 
   const isFetchingRef = useRef(false);
-  const hasFetchedRef = useRef(false);
   const lastFetchParamsRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
+  const getCacheKey = useCallback((slug, filters) => {
+    return `${slug}-${filters.sort}-${filters.page}-${filters.limit}`;
+  }, []);
+
+  const getCachedData = useCallback((key) => {
+    const cached = feedbackCache.get(key);
+    if (!cached) return null;
+    
+    const now = Date.now();
+    if (now - cached.timestamp > CACHE_DURATION) {
+      feedbackCache.delete(key);
+      return null;
+    }
+    
+    return cached.data;
+  }, []);
+
+  const setCachedData = useCallback((key, data) => {
+    feedbackCache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }, []);
 
   const fetchFeedback = useCallback(async () => {
     if (!slug) return;
     
-    // Create params string for comparison
     const currentParams = JSON.stringify({ slug, ...filters });
+    const cacheKey = getCacheKey(slug, filters);
     
-    // Prevent duplicate fetches with same params
-    if (isFetchingRef.current && currentParams === lastFetchParamsRef.current) {
-      console.log('⏭️ Skipping duplicate feedback fetch');
+    // Check cache first
+    const cachedData = getCachedData(cacheKey);
+    if (cachedData) {
+      setFeedbacks(cachedData.feedbacks || []);
+      setPagination(cachedData.pagination || {});
+      setStats(cachedData.stats || {});
       return;
     }
     
+    // Prevent duplicate fetches
+    if (isFetchingRef.current && currentParams === lastFetchParamsRef.current) {
+      return;
+    }
+    
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    isFetchingRef.current = true;
+    lastFetchParamsRef.current = currentParams;
+    
     try {
-      isFetchingRef.current = true;
-      lastFetchParamsRef.current = currentParams;
       setLoading(true);
       setError(null);
       
       const data = await feedbackService.getForOwner(slug, filters);
+      
       setFeedbacks(data.feedbacks || []);
       setPagination(data.pagination || {});
       setStats(data.stats || {
@@ -162,22 +204,33 @@ export const useOwnerFeedback = (slug) => {
         active: 0,
         answerRate: 0,
       });
-      hasFetchedRef.current = true;
+      
+      // Cache the result
+      setCachedData(cacheKey, data);
+      
     } catch (error) {
-      setError(error.message);
+      if (error.name !== 'AbortError') {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
+      abortControllerRef.current = null;
     }
-  }, [slug, filters.sort, filters.page, filters.limit, filters.search]);
+  }, [slug, filters, getCacheKey, getCachedData, setCachedData]);
 
-  // Only fetch once on mount or when filters change
+  // Fetch only once on mount and when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchFeedback();
-    }, 100); // Small debounce to batch rapid changes
+    }, 100);
     
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [slug, filters.sort, filters.page, filters.limit, filters.search]);
 
   const updateFilters = useCallback((newFilters) => {
@@ -195,37 +248,35 @@ export const useOwnerFeedback = (slug) => {
   const answerFeedback = useCallback(async (feedbackId, answer) => {
     try {
       const updatedFeedback = await feedbackService.answer(feedbackId, answer);
+      
+      // Optimistic update
       setFeedbacks((prev) =>
         prev.map((f) => (f._id === feedbackId ? updatedFeedback : f))
       );
+      
+      // Clear cache to force refresh
+      feedbackCache.clear();
+      
       return updatedFeedback;
     } catch (error) {
       throw error;
     }
   }, []);
 
-  const archiveFeedback = useCallback(
-    async (feedbackId, archived = true) => {
-      try {
-        await feedbackService.archive(feedbackId, archived);
-        
-        // Remove from current list if moving to different state
-        if (archived && filters.sort !== "archived") {
-          // Moving TO archive from active/answered
-          setFeedbacks((prev) => prev.filter((f) => f._id !== feedbackId));
-        } else if (!archived && filters.sort === "archived") {
-          // Moving FROM archive to active/answered
-          setFeedbacks((prev) => prev.filter((f) => f._id !== feedbackId));
-        } else {
-          // Refresh to get updated state
-          fetchFeedback();
-        }
-      } catch (error) {
-        throw error;
-      }
-    },
-    [filters.sort, fetchFeedback]
-  );
+  const archiveFeedback = useCallback(async (feedbackId, archived = true) => {
+    try {
+      await feedbackService.archive(feedbackId, archived);
+      
+      // Optimistic update - remove from current list
+      setFeedbacks((prev) => prev.filter((f) => f._id !== feedbackId));
+      
+      // Clear cache
+      feedbackCache.clear();
+      
+    } catch (error) {
+      throw error;
+    }
+  }, []);
 
   return {
     feedbacks,
@@ -243,7 +294,6 @@ export const useOwnerFeedback = (slug) => {
   };
 };
 
-// FIXED: Export useFeedbackAnswer
 export const useFeedbackAnswer = () => {
   const [formData, setFormData] = useState({ answer: "" });
   const [errors, setErrors] = useState({});

@@ -18,115 +18,117 @@ export const AuthProvider = ({ children }) => {
   const isFetchingRef = useRef(false);
   const hasInitializedRef = useRef(false);
   const fetchAbortControllerRef = useRef(null);
+
+const fetchUser = useCallback(async (force = false) => {
   
-  const fetchUser = useCallback(async (force = false) => {
-   
-    if (isFetchingRef.current && !force) {
-      console.log(' Skipping fetchUser - already in progress');
-      return;
-    }
+  if (isFetchingRef.current && !force) {
+    //console.log(' Skipping fetchUser - already in progress');
+    return;
+  }
 
-    if (isLoggingOut) {
-      setLoading(false);
-      return;
-    }
+  if (isLoggingOut) {
+    setLoading(false);
+    return;
+  }
 
-    if (fetchAbortControllerRef.current) {
-      fetchAbortControllerRef.current.abort();
-    }
+  if (fetchAbortControllerRef.current) {
+    fetchAbortControllerRef.current.abort();
+  }
 
-    fetchAbortControllerRef.current = new AbortController();
-    isFetchingRef.current = true;
+  fetchAbortControllerRef.current = new AbortController();
+  isFetchingRef.current = true;
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        credentials: 'include' ,
-         signal: fetchAbortControllerRef.current.signal
-      });
-      
-      if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
-        setError(null);
-      } else if (res.status === 401) {
-        setUser(null);
-        setError(null);
-      } else {
-        console.error('Failed to fetch user, status:', res.status);
-        setUser(null);
-      }
-   } catch (err) {
-      if (err.name === 'AbortError') {
-        console.log('Fetch aborted');
-        return;
-      }
-      console.error('Failed to fetch user:', err);
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      credentials: 'include',
+      signal: fetchAbortControllerRef.current.signal
+    });
+    
+    if (res.ok) {
+      const userData = await res.json();
+      setUser(userData);
+      setError(null);
+    } else if (res.status === 401) {
       setUser(null);
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-      fetchAbortControllerRef.current = null;
-    }
-  }, [isLoggingOut]);
-
-  const login = useCallback(async (credentials) => {
-    try {
       setError(null);
-
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(credentials)
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data.user) {
-        const message = data.message || "Invalid email or password";
-        setError(message);
-        return { success: false, message };
-      }
-
-      setUser(data.user);
-      return { success: true, user: data.user };
-    } catch (error) {
-      setError(error.message);
-      return { success: false, message: error.message };
+    } else {
+      console.error('Failed to fetch user, status:', res.status);
+      setUser(null);
     }
-  }, []);
-
-  const register = useCallback(async (userData) => {
-    try {
-      setError(null);
-      setLoading(true);
-
-      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(userData)
-      });
-      
-      const data = await res.json().catch(() => ({}));
-      
-      if (!res.ok) {
-        const message = data.message || "Registration failed. Please try again.";
-        setError(message);
-        throw new Error(message);
-      }
-
-      setUser(data.user);
-      setError(null);
-      return data;
-    } catch (error) {
-      console.error("Registration error:", error);
-      setError(error.message || "An unexpected error occurred during registration.");
-      throw error;
-    } finally {
-      setLoading(false);
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log('Fetch aborted');
+      return;
     }
-  }, []);
+    console.error('Failed to fetch user:', err);
+    setUser(null);
+  } finally {
+    setLoading(false);
+    isFetchingRef.current = false;
+    fetchAbortControllerRef.current = null;
+  }
+}, [isLoggingOut]);
+
+
+const login = useCallback(async (credentials) => {
+  try {
+    setError(null);
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(credentials)
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.user) {
+      const message = data.message || "Invalid email or password";
+      setError(message);
+      return { success: false, message };
+    }
+
+    setUser(data.user);
+    setLoading(false); 
+    return { success: true, user: data.user };
+  } catch (error) {
+    setError(error.message);
+    return { success: false, message: error.message };
+  }
+}, []);
+
+const register = useCallback(async (userData) => {
+  try {
+    setError(null);
+    setLoading(true);
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(userData)
+    });
+    
+    const data = await res.json().catch(() => ({}));
+    
+    if (!res.ok) {
+      const message = data.message || "Registration failed. Please try again.";
+      setError(message);
+      throw new Error(message);
+    }
+
+    setUser(data.user);
+    setError(null);
+    setLoading(false); 
+    return data;
+  } catch (error) {
+    console.error("Registration error:", error);
+    setError(error.message || "An unexpected error occurred during registration.");
+    setLoading(false); 
+    throw error;
+  }
+}, []);
 
   const logout = useCallback(async () => {
     try {

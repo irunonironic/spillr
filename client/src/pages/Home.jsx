@@ -75,23 +75,45 @@ const Home = () => {
   const navigate = useNavigate();
   const [hideTitle, setHideTitle] = useState(false);
   const { loading, authMode, setAuthMode, user, logout, isAuthenticated } = useAuth();
-
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
-   
-    if (isAuthenticated && location.pathname === "/") {
+    if (!loading && isAuthenticated && location.pathname === "/" && !hasRedirected) {
+      setHasRedirected(true);
       navigate("/dashboard", { replace: true });
-      return;
     }
+  }, [isAuthenticated, loading, navigate, location.pathname, hasRedirected]);
 
-
+  useEffect(() => {
     const handleScroll = () => setHideTitle(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [isAuthenticated, navigate, location.pathname]);
+  }, []);
+  
+if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600" style={{ fontFamily: "Space Grotesk" }}>
+            Loading...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  if (loading) {
-    return <QuickLoader />;
+  if (isAuthenticated && location.pathname === "/") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600" style={{ fontFamily: "Space Grotesk" }}>
+            Redirecting...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   const handleCloseModal = () => setAuthMode(null);
