@@ -5,7 +5,8 @@ import Footer from "./Footer";
 import { useAuth } from "../hooks/useAuth";
 import DynamicMeta from './DynamicMeta';
 import { getOGImageUrl } from '../utils/cloudinaryOG';
-import { getImageUrl } from "../utils/imageHelper";
+import { getImageUrl,getInitials , generateInitialsAvatar } from "../utils/imageHelper";
+
 const PublicWallView = ({ logout }) => {
   const decodeHTML = (str = "") => {
   if (!str || typeof str !== "string") return "";
@@ -351,9 +352,14 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
                   }}
                 />
               ) : (
-                <span className="text-4xl font-extrabold">
-                  {getInitials(decodeHTML(userProfile?.name || "User"))}
-                </span>
+                 <img
+                  src={generateInitialsAvatar(
+                    decodeHTML(userProfile?.name || userProfile?.username || "User"),
+                    128
+                  )}
+                  alt="Profile avatar"
+                  className="w-full h-full object-cover"
+                />
               )}
             </div>
 

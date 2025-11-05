@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useUser } from "../hooks/useUser";
 import { useAuth } from "../hooks/useAuth";
 import { FaCheckCircle, FaShareAlt } from "react-icons/fa";
-import { getImageUrl, getInitials } from "../utils/imageHelper";
+import { getImageUrl, getInitials ,generateInitialsAvatar} from "../utils/imageHelper";
 
 const ProfileCard = () => {
 
@@ -104,12 +104,11 @@ const userBio = decodeHTML(profile?.bio || "");
             }}
           />
         ) : (
-          <span
-            className="text-4xl font-bold text-gray-700"
-            style={{ fontFamily: "Space Grotesk" }}
-          >
-            {getInitials(userName)}
-          </span>
+          <img
+            src={generateInitialsAvatar(userName, 224)}
+            alt={`${userName}'s avatar`}
+            className="object-cover w-full h-full"
+          />
         )}
       </div>
 
