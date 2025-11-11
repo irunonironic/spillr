@@ -155,6 +155,62 @@ const register = useCallback(async (userData) => {
     }
   }, []);
 
+  const requestMagicLink = useCallback(async (email) => {
+  try {
+    setError(null);
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/request-magic-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const message = data.message || "Failed to send magic link.";
+      setError(message);
+      return { success: false, message };
+    }
+
+    return { success: true, message: data.message || "login link sent successfully." };
+  } catch (err) {
+    console.error("login link request error:", err);
+    const message = err.message || "Network error while sending magic link.";
+    setError(message);
+    return { success: false, message };
+  }
+}, []);
+
+const verifyMagicLink = useCallback(async (token) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/verify-magic-link/${token}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      const message = data.message || "Invalid or expired link.";
+      setError(message);
+      return { success: false, message };
+    }
+
+    setUser(data.user);
+    setError(null);
+    return { success: true, user: data.user };
+  } catch (err) {
+    console.error("Verify login link error:", err);
+    const message = err.message || "Verification failed.";
+    setError(message);
+    return { success: false, message };
+  }
+}, []);
+
+
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -167,19 +223,22 @@ const register = useCallback(async (userData) => {
     }
   }, []); 
 
-  const value = {
-    user,
-    loading,
-    error,
-    authMode,
-    setAuthMode, 
-    isAuthenticated: !!user,
-    login,
-    register,
-    logout,
-    clearError,
-    refetchUser: () => fetchUser(true) 
-  };
+const value = {
+  user,
+  loading,
+  error,
+  authMode,
+  setAuthMode,
+  isAuthenticated: !!user,
+  login,
+  register,
+  logout,
+  clearError,
+  refetchUser: () => fetchUser(true),
+  requestMagicLink, 
+  verifyMagicLink   
+};
+
 
   return (
     <AuthContext.Provider value={value}>

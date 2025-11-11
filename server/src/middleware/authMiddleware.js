@@ -24,12 +24,12 @@ const authMiddleware = async (req, res, next) => {
     const cookieHeader = req.headers.cookie;
     const hasCookies = !!cookieHeader;
     
-    console.log('Auth middleware check:', {
+    /*console.log('Auth middleware check:', {
       path: req.path,
       method: req.method,
       hasCookieHeader: hasCookies,
       cookieKeys: Object.keys(req.cookies || {}),
-    });
+    }); */
     
     let token = req.cookies?.token;
     
@@ -53,7 +53,7 @@ const authMiddleware = async (req, res, next) => {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);
-      console.log(' Token verified for user:', decoded.id);
+      //console.log(' Token verified for user:', decoded.id);
     } catch (jwtError) {
       console.log(' Token verification failed:', jwtError.message);
       
@@ -101,7 +101,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     req.user = { ...user, id: user._id.toString() };
-    console.log('✅ Auth successful for:', user.email);
+    console.log(' Auth successful for:', user.email);
     
     next();
   } catch (error) {

@@ -4,6 +4,7 @@ export const validateEmail = (email) => {
   }
   
   const trimmed = email.trim();
+  //console.log(' Validating email:', trimmed);
   
   if (trimmed.length === 0) {
     return 'Email is required';
@@ -12,14 +13,12 @@ export const validateEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   
   if (!emailRegex.test(trimmed)) {
+    //console.log(' Email regex failed'); 
     return 'Please enter a valid email address';
   }
   
-  if (trimmed.length > 254) {
-    return 'Email address is too long';
-  }
-  
-  return null;
+  //console.log('Email validation passed'); 
+  return null; 
 };
 
 export const validatePassword = (password, options = {}) => {

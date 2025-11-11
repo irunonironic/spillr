@@ -23,6 +23,7 @@ const getJWTSecret = () => {
   return JWT_SECRET;
 };
 
+
 const getCookieConfig = () => {
   return {
     httpOnly: true,
@@ -125,7 +126,7 @@ const createWallForUser = async (userId, username, name) => {
       slug: slug,
     });
     
-    console.log(`✓ Wall created successfully for user ${userId}: ${slug}`);
+    console.log(` Wall created successfully for user ${userId}: ${slug}`);
     return { success: true, wall };
   } catch (error) {
     console.error('Failed to create wall:', error);
@@ -521,5 +522,99 @@ router.get("/debug-cors", (req, res) => {
     nodeEnv: process.env.NODE_ENV
   });
 });
+
+router.post("/request-magic-link", authLimiter, async (req, res) => {
+  try {
+    const { email: rawEmail } = req.body;
+    const email = rawEmail?.trim()?.toLowerCase();
+
+    if (!email || !validateEmail(email)) {
+      return res.status(400).json({ message: "Valid email is required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      console.log("User not found, returning success for security");
+      return res.json({ message: "If account exists, magic link sent" });
+    }
+
+    console.log("User found:", user.email);
+
+    const magicToken = crypto.randomBytes(32).toString("hex");
+    user.magicLinkToken = magicToken;
+    user.magicLinkExpires = Date.now() + 15 * 60 * 1000; // 15 min
+    await user.save();
+
+    const magicLink = `${process.env.FRONTEND_URL}/verify-magic?token=${magicToken}`;
+
+    const emailResult = await sendEmail({
+      to: user.email,
+      subject: "Your Spillr Login Link",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Login to Spillr</h2>
+          <p>Click the button below to login to your account:</p>
+          <a href="${magicLink}" 
+             style="display: inline-block; background-color: #000; color: #fff; 
+                    padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+            Login to Spillr
+          </a>
+          <p style="color: #666; font-size: 14px;">This link will expire in 15 minutes.</p>
+        </div>
+      `,
+      text: `Login to Spillr: ${magicLink}\n\nThis link expires in 15 minutes.`,
+    });
+
+    console.log("Email send result:", emailResult);
+
+    res.status(200).json({
+      message: "Login link sent to your email",
+      success: true,
+    });
+  } catch (err) {
+    console.error("Login link error:", err);
+    res.status(500).json({ message: "Failed to send login link" });
+  }
+});
+
+router.get("/verify-magic-link/:token", async(req,res) => {
+  try{
+    const user = await User.findOne({
+      magicLinkToken: req.params.token,
+      magicLinkExpires: { $gt: Date.now()}
+    });
+
+    if(!user){
+     return res.status(400).json({ message: "Invalid or expired link" });
+
+    }
+
+    user.magicLinkToken = undefined;
+    user.magicLinkExpires = undefined;
+    await user.save();
+
+     const JWT_SECRET = getJWTSecret();
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    setTokenCookie(res, token);
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        username: user.username
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Verification failed" });
+  }
+})
 
 export default router;

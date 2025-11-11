@@ -7,6 +7,7 @@ import LoadingSpinner from "./components/Loading";
 import Settings from "./components/UserSettings";
 import PublicWallView from "./components/PublicWallView";
 import ResetPasswordForm from './components/auth/ResetPasswordForm'
+import VerifyMagicLink from "./components/auth/VerifyMagicLink";
 
 import "@fontsource/space-grotesk/400.css"
 import "@fontsource/space-grotesk/700.css"
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/reset-password" element={<ResetPasswordForm />} />
           <Route path="/wall/:slug" element={<PublicWallView />} />
+          <Route path="/verify-magic" element={<VerifyMagicLink />} />
           
           <Route element={<AuthRoute />}>
             <Route 

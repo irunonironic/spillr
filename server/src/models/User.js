@@ -95,6 +95,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
     },
+    magicLinkToken:{type: String, select: false},
+    magicLinkExpires:{type: Date, select:false},
+    
     accountDeletionTokenExpiry: {
       type: Date,
       select: false,
