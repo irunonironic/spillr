@@ -2,9 +2,8 @@ import express from "express";
 import Feedback from "../models/Feedback.js";
 import Wall from "../models/Wall.js";
 import authMiddleware from "../middleware/authMiddleware.js";
-import transporter from "../config/email.js";
 import validator from "validator";
-import sendEmail from "../config/email.js";
+import sendEmail from "../services/emailService.js";
 import mongoose from "mongoose";
 import rateLimit from "express-rate-limit";
 

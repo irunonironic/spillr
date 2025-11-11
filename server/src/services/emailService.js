@@ -27,7 +27,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
         'api-key': process.env.BREVO_API_KEY,
         'Content-Type': 'application/json'
       },
-      timeout: 10000
+      timeout: 15000
     });
 
     const messageId = response.data?.messageId || response.data?.id || null;

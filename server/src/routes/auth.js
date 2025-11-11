@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import rateLimit from "express-rate-limit";
 import authMiddleware from "../middleware/authMiddleware.js";
-import sendEmail from "../utils/sendEmail.js";
+import sendEmail from "../services/emailService.js";
 import Wall from "../models/Wall.js";
 
 const router = express.Router();
@@ -145,6 +145,15 @@ router.get("/health", (req, res) => {
       status: "ok",
       jwt_configured: !!JWT_SECRET,
       message: "Auth service is running",
+      email_config: {
+        brevo_api_key: !!process.env.BREVO_API_KEY,
+        brevo_sender_email: !!process.env.BREVO_SENDER_EMAIL,
+        brevo_sender_name: process.env.BREVO_SENDER_NAME || 'Not set',
+        frontend_url: process.env.FRONTEND_URL || 'Not set',
+        api_key_preview: process.env.BREVO_API_KEY 
+          ? `${process.env.BREVO_API_KEY.slice(0, 4)}...${process.env.BREVO_API_KEY.slice(-4)}`
+          : 'Not set'
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -153,6 +162,8 @@ router.get("/health", (req, res) => {
     });
   }
 });
+
+
 
 // Get current user
 router.get("/me", authMiddleware, async (req, res) => {
@@ -535,20 +546,25 @@ router.post("/request-magic-link", authLimiter, async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      console.log("User not found, returning success for security");
-      return res.json({ message: "If account exists, magic link sent" });
+      console.log(" User not found, returning success for security");
+      return res.json({ message: "If account exists, logic link sent", success: true });
     }
 
-    console.log("User found:", user.email);
+    console.log(" User found:", user.email);
+    console.log(" Email service check:");
+    console.log(" Using Brevo:", !!process.env.BREVO_API_KEY);
+    console.log(" Using SMTP:", !!process.env.EMAIL_HOST);
 
     const magicToken = crypto.randomBytes(32).toString("hex");
     user.magicLinkToken = magicToken;
     user.magicLinkExpires = Date.now() + 15 * 60 * 1000; // 15 min
     await user.save();
 
+    console.log(" Login token generated and saved");
+
     const magicLink = `${process.env.FRONTEND_URL}/verify-magic?token=${magicToken}`;
 
-    const emailResult = await sendEmail({
+    const emailPromise = sendEmail({
       to: user.email,
       subject: "Your Spillr Login Link",
       html: `
@@ -561,20 +577,29 @@ router.post("/request-magic-link", authLimiter, async (req, res) => {
             Login to Spillr
           </a>
           <p style="color: #666; font-size: 14px;">This link will expire in 15 minutes.</p>
+          <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
         </div>
       `,
-      text: `Login to Spillr: ${magicLink}\n\nThis link expires in 15 minutes.`,
+      text: `Login to Spillr: ${magicLink}\n\nThis link expires in 15 minutes.\n\nIf you didn't request this, please ignore this email.`,
     });
-
-    console.log("Email send result:", emailResult);
 
     res.status(200).json({
       message: "Login link sent to your email",
       success: true,
     });
+
+    emailPromise.then(result => {
+      console.log(" Email send result:", result.success ? 'Success' : ' Failed');
+      if (!result.success) {
+        console.error("   Error:", result.error);
+      }
+    }).catch(err => {
+      console.error("Email send error:", err.message);
+    });
+
   } catch (err) {
-    console.error("Login link error:", err);
-    res.status(500).json({ message: "Failed to send login link" });
+    console.error(" Magic link request error:", err);
+    res.status(500).json({ message: "Failed to process request" });
   }
 });
 
