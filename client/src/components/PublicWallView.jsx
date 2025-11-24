@@ -5,19 +5,22 @@ import Footer from "./Footer";
 import { useAuth } from "../hooks/useAuth";
 import DynamicMeta from './DynamicMeta';
 import { getOGImageUrl } from '../utils/cloudinaryOG';
-import { getImageUrl,getInitials , generateInitialsAvatar } from "../utils/imageHelper";
+import { getImageUrl, generateInitialsAvatar } from "../utils/imageHelper";
 
 const PublicWallView = ({ logout }) => {
   const decodeHTML = (str = "") => {
-  if (!str || typeof str !== "string") return "";
-  const txt = document.createElement("textarea");
-  txt.innerHTML = str;
-  return txt.value;
-};
+    if (!str || typeof str !== "string") return "";
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  };
 
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const handleNavigation = (path) => navigate(path);
   const { slug } = useParams();
+  
+  // State
   const [formData, setFormData] = useState({ question: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,17 +28,14 @@ const PublicWallView = ({ logout }) => {
   const [answeredFeedbacks, setAnsweredFeedbacks] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingFeedback, setLoadingFeedback] = useState(true);
-  const navigate = useNavigate();
   const [sent, setSent] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPrevPage: false,
-  });
- 
+  
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+
+  // Navigation UI State
   const [activeItem, setActiveItem] = useState(
     isAuthenticated ? "Dashboard" : "Register"
   );
@@ -43,19 +43,19 @@ const PublicWallView = ({ logout }) => {
   const [imageError, setImageError] = useState(false);
   const navRefs = useRef({});
 
-  const ogTitle = userProfile?.name 
-  ? `${userProfile.name} (@${slug}) - Spillr`
-  : `@${slug} - Spillr`;
+  // Meta Data
+  const ogTitle = userProfile?.name
+    ? `${userProfile.name} (@${slug}) - Spillr`
+    : `@${slug} - Spillr`;
 
-const ogDescription = userProfile?.bio 
-  ? `${userProfile.bio} | Send anonymous messages to ${userProfile.name} on Spillr`
-  : `Send anonymous messages to @${slug} on Spillr. Share your thoughts anonymously and get real feedback.`;
+  const ogDescription = userProfile?.bio
+    ? `${userProfile.bio} | Send anonymous messages to ${userProfile.name} on Spillr`
+    : `Send anonymous messages to @${slug} on Spillr. Share your thoughts anonymously and get real feedback.`;
 
-const ogImage = userProfile ? getOGImageUrl(userProfile) : '/og-image.png';
+  const ogImage = userProfile ? getOGImageUrl(userProfile) : '/og-image.png';
+  const ogUrl = `${window.location.origin}/wall/${slug}`;
 
-const ogUrl = `${window.location.origin}/wall/${slug}`;
-
-
+  // Nav Indicator Logic
   const updateIndicator = (label) => {
     const el = navRefs.current[label];
     if (el) {
@@ -73,15 +73,15 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
   const getNavItems = (loggedIn) =>
     loggedIn
       ? [
-          { label: "Home", onClick: () => handleNavigation("/") },
-          { label: "Dashboard", onClick: () => handleNavigation("/dashboard") },
-          { label: "Settings", onClick: () => handleNavigation("/settings") },
-        ]
+        { label: "Home", onClick: () => handleNavigation("/") },
+        { label: "Dashboard", onClick: () => handleNavigation("/dashboard") },
+        { label: "Settings", onClick: () => handleNavigation("/settings") },
+      ]
       : [
-          { label: "Home", onClick: () => handleNavigation("/") },
-          { label: "Register", onClick: () => handleNavigation("/register") },
-          { label: "Login", onClick: () => handleNavigation("/login") },
-        ];
+        { label: "Home", onClick: () => handleNavigation("/") },
+        { label: "Register", onClick: () => handleNavigation("/register") },
+        { label: "Login", onClick: () => handleNavigation("/login") },
+      ];
 
   const items = getNavItems(isAuthenticated);
 
@@ -98,6 +98,7 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+  // Fetch Profile
   const fetchUserProfile = useCallback(async () => {
     if (!slug) return;
 
@@ -107,8 +108,6 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
 
       if (response.ok) {
         const data = await response.json();
-         //console.log("PublicWallView fetched data:", data);
-
         setUserProfile({
           ...data,
           name: decodeHTML(data.name || ""),
@@ -124,70 +123,68 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
     }
   }, [slug, API_BASE_URL]);
 
-  const fetchAnsweredFeedback = useCallback(
-    async (page = 1) => {
-      if (!slug) return;
+  
+  const fetchAnsweredFeedback = useCallback(async (pageNum = 1) => {
+    if (!slug) return;
+    try {
+      if (pageNum === 1) setLoadingFeedback(true); 
 
-      try {
-        setLoadingFeedback(true);
-        const response = await fetch(
-          `${API_BASE_URL}/api/feedback/wall/${slug}?page=${page}&limit=10`
-        );
+      const response = await fetch(
+        `${API_BASE_URL}/api/feedback/wall/${slug}?limit=50&page=${pageNum}`
+      );
 
-        if (response.ok) {
-          const data = await response.json();
-          setAnsweredFeedbacks(data.feedbacks || []);
-          setPagination(
-            data.pagination || {
-              currentPage: 1,
-              totalPages: 1,
-              hasNextPage: false,
-              hasPrevPage: false,
-            }
-          );
-          setLastUpdate(new Date());
-        }
-      } catch (err) {
-        console.error("Failed to fetch feedback:", err);
-      } finally {
-        setLoadingFeedback(false);
+      if (response.ok) {
+        const data = await response.json();
+        const newFeedbacks = data.feedbacks || [];
+
+        setAnsweredFeedbacks(prev => {
+    
+           return pageNum === 1 ? newFeedbacks : [...prev, ...newFeedbacks];
+        });
+
+        setHasMore(data.pagination?.hasNextPage || false); 
       }
-    },
-    [slug, API_BASE_URL]
-  );
-
-   const handlePageChange = useCallback(
-  (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchAnsweredFeedback(newPage);
+    } catch (err) {
+      console.error("Failed to fetch feedback:", err);
+    } finally {
+      setLoadingFeedback(false);
     }
-  },
-  [fetchAnsweredFeedback, pagination.totalPages]
-);
+  }, [slug, API_BASE_URL]);
 
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchAnsweredFeedback(nextPage);
+  };
+
+ 
   useEffect(() => {
     if (slug) {
       fetchUserProfile();
-      fetchAnsweredFeedback();
+      fetchAnsweredFeedback(1);
     }
   }, [slug, fetchUserProfile, fetchAnsweredFeedback]);
 
+  // Auto Refresh Logic 
   useEffect(() => {
     if (!slug) return;
 
     const intervalId = setInterval(() => {
-      console.log(" Auto-refreshing public feedback...");
-      fetchAnsweredFeedback();
-    }, 20000); // 20 seconds
+   
+      if (page === 1) {
+        //console.log("Auto-refreshing public feedback...");
+        fetchAnsweredFeedback(1);
+      }
+    }, 20000); 
 
     return () => clearInterval(intervalId);
-  }, [slug, fetchAnsweredFeedback]);
+  }, [slug, fetchAnsweredFeedback, page]);
 
-  // Manual refresh handler
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
+    setPage(1); 
     try {
-      await fetchAnsweredFeedback();
+      await fetchAnsweredFeedback(1);
     } catch (err) {
       console.error("Refresh failed:", err);
     } finally {
@@ -236,8 +233,9 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
       setSent(true);
       setFormData({ question: "" });
 
+      // Refresh just the top of the list after sending
       setTimeout(() => {
-        fetchAnsweredFeedback();
+        if(page === 1) fetchAnsweredFeedback(1);
       }, 3000);
     } catch (err) {
       console.error("Failed to send message:", err);
@@ -287,19 +285,18 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
     );
   }
 
-
   return (
     <div className="min-h-screen bg-[#fef9f3] text-black font-['Space_Grotesk']">
-      <DynamicMeta 
-      title={ogTitle}
-      description={ogDescription}
-      image={ogImage}
-      url={ogUrl}
-    />
+      <DynamicMeta
+        title={ogTitle}
+        description={ogDescription}
+        image={ogImage}
+        url={ogUrl}
+      />
+      
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 flex items-center bg-yellow-200 border-b-1 border-black h-16 z-50">
         <div className="w-full flex justify-between items-center px-4">
-          {/* Logo */}
           <div
             onClick={() => handleNavigation("/")}
             className="font-['Fasthin',cursive] text-3xl md:text-4xl text-black cursor-pointer"
@@ -307,7 +304,6 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
             Spillr
           </div>
           <nav className="relative flex items-center gap-3">
-            {/* Moving indicator */}
             <div
               className="absolute bottom-0 h-[4px] bg-black transition-all duration-300 ease-out pointer-events-none"
               style={{
@@ -323,11 +319,10 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
                 onClick={() => handleItemClick(item)}
                 onMouseEnter={() => updateIndicator(item.label)}
                 onMouseLeave={() => updateIndicator(activeItem)}
-                className={`px-4 py-1 pr-4 text-sm tracking-wide transition-colors duration-200 ${
-                  activeItem === item.label
+                className={`px-4 py-1 pr-4 text-sm tracking-wide transition-colors duration-200 ${activeItem === item.label
                     ? "text-black"
                     : "text-black hover:text-gray-800"
-                }`}
+                  }`}
               >
                 {item.label}
               </button>
@@ -352,7 +347,7 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
                   }}
                 />
               ) : (
-                 <img
+                <img
                   src={generateInitialsAvatar(
                     decodeHTML(userProfile?.name || userProfile?.username || "User"),
                     128
@@ -404,10 +399,9 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
                 type="submit"
                 disabled={loading || !formData.question.trim()}
                 className={`border-1 border-black px-6 py-3 font-bold shadow-[4px_4px_0_0_#000] transition
-                  ${
-                    sent
-                      ? "bg-green-400 text-black"
-                      : "bg-black text-white hover:bg-yellow-200 hover:text-black"
+                  ${sent
+                    ? "bg-green-400 text-black"
+                    : "bg-black text-white hover:bg-yellow-200 hover:text-black"
                   }
                   disabled:opacity-50`}
               >
@@ -421,10 +415,10 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
             – Messages appear only after being answered.
           </p>
         </div>
-      
+
 
         {/* Answered Messages Section */}
-         <div className="border-4 border-black bg-white p-10 shadow-[8px_8px_0_0_#000]">
+        <div className="border-4 border-black bg-white p-10 shadow-[8px_8px_0_0_#000]">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-black">Answered Messages</h3>
             <button
@@ -461,31 +455,13 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
                 ))}
               </div>
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-6">
-                  <button
-                    onClick={() =>
-                      handlePageChange(pagination.currentPage - 1)
-                    }
-                    disabled={!pagination.hasPrevPage}
-                    className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 disabled:opacity-50 shadow-[3px_3px_0_0_#000]"
+              {hasMore && (
+                <div className="mt-8 text-center">
+                  <button 
+                    onClick={handleLoadMore}
+                    className="px-6 py-3 border-2 border-black bg-white hover:bg-yellow-200 shadow-[4px_4px_0_0_#000] font-bold transition-all cursor-pointer"
                   >
-                    Prev
-                  </button>
-
-                  <span className="text-sm font-medium">
-                    Page {pagination.currentPage} of {pagination.totalPages}
-                  </span>
-
-                  <button
-                    onClick={() =>
-                      handlePageChange(pagination.currentPage + 1)
-                    }
-                    disabled={!pagination.hasNextPage}
-                    className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 disabled:opacity-50 shadow-[3px_3px_0_0_#000]"
-                  >
-                    Next
+                    Load More Messages
                   </button>
                 </div>
               )}
@@ -508,13 +484,6 @@ const ogUrl = `${window.location.origin}/wall/${slug}`;
       <Footer />
     </div>
   );
-};
-
-// ✅ Add this just above the return if it’s missing
-const handlePageChange = (newPage) => {
-  if (newPage >= 1 && newPage <= pagination.totalPages) {
-    fetchAnsweredFeedback(newPage);
-  }
 };
 
 export default PublicWallView;

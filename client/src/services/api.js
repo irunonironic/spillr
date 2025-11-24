@@ -25,12 +25,6 @@ const pendingRequests = new Map();
 const getAuthHeaders = (isFormData = false) => {
   const headers = {};
   if (!isFormData) headers['Content-Type'] = 'application/json';
-  try {
-    const token = localStorage.getItem("token");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  } catch (e) {
-    // Silent fail
-  }
   return headers;
 };
 
