@@ -15,120 +15,128 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [authMode, setAuthMode] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false); 
   const isFetchingRef = useRef(false);
   const hasInitializedRef = useRef(false);
   const fetchAbortControllerRef = useRef(null);
 
-const fetchUser = useCallback(async (force = false) => {
-  
-  if (isFetchingRef.current && !force) {
-    //console.log(' Skipping fetchUser - already in progress');
-    return;
-  }
-
-  if (isLoggingOut) {
-    setLoading(false);
-    return;
-  }
-
-  if (fetchAbortControllerRef.current) {
-    fetchAbortControllerRef.current.abort();
-  }
-
-  fetchAbortControllerRef.current = new AbortController();
-  isFetchingRef.current = true;
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      credentials: 'include',
-      signal: fetchAbortControllerRef.current.signal
-    });
-    
-    if (res.ok) {
-      const userData = await res.json();
-      setUser(userData);
-      setError(null);
-    } else if (res.status === 401) {
-      setUser(null);
-      setError(null);
-    } else {
-      console.error('Failed to fetch user, status:', res.status);
-      setUser(null);
-    }
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      console.log('Fetch aborted');
+  const fetchUser = useCallback(async (force = false) => {
+    if (isFetchingRef.current && !force) {
       return;
     }
-    console.error('Failed to fetch user:', err);
-    setUser(null);
-  } finally {
-    setLoading(false);
-    isFetchingRef.current = false;
-    fetchAbortControllerRef.current = null;
-  }
-}, [isLoggingOut]);
 
-
-const login = useCallback(async (credentials) => {
-  try {
-    setError(null);
-
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(credentials)
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok || !data.user) {
-      const message = data.message || "Invalid email or password";
-      setError(message);
-      return { success: false, message };
+    if (isLoggingOut) {
+      setLoading(false);
+      setAuthChecked(true);
+      return;
     }
 
-    setUser(data.user);
-    setLoading(false); 
-    return { success: true, user: data.user };
-  } catch (error) {
-    setError(error.message);
-    return { success: false, message: error.message };
-  }
-}, []);
-
-const register = useCallback(async (userData) => {
-  try {
-    setError(null);
-    setLoading(true);
-
-    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(userData)
-    });
-    
-    const data = await res.json().catch(() => ({}));
-    
-    if (!res.ok) {
-      const message = data.message || "Registration failed. Please try again.";
-      setError(message);
-      throw new Error(message);
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
     }
 
-    setUser(data.user);
-    setError(null);
-    setLoading(false); 
-    return data;
-  } catch (error) {
-    console.error("Registration error:", error);
-    setError(error.message || "An unexpected error occurred during registration.");
-    setLoading(false); 
-    throw error;
-  }
-}, []);
+    fetchAbortControllerRef.current = new AbortController();
+    isFetchingRef.current = true;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        credentials: 'include',
+        signal: fetchAbortControllerRef.current.signal
+      });
+      
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+        setError(null);
+        //console.log('✓ User authenticated:', userData.email);
+      } else if (res.status === 401) {
+        setUser(null);
+        setError(null);
+        console.log('ℹ User not authenticated');
+      } else {
+        console.error('Failed to fetch user, status:', res.status);
+        setUser(null);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return;
+      }
+      console.error('Failed to fetch user:', err);
+      setUser(null);
+    } finally {
+      setLoading(false);
+      setAuthChecked(true); // NEW: Mark auth check as complete
+      isFetchingRef.current = false;
+      fetchAbortControllerRef.current = null;
+    }
+  }, [isLoggingOut]);
+
+  const login = useCallback(async (credentials) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(credentials)
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.user) {
+        const message = data.message || "Invalid email or password";
+        setError(message);
+        setLoading(false);
+        return { success: false, message };
+      }
+
+      setUser(data.user);
+      setError(null);
+      setAuthChecked(true);
+      setLoading(false);
+      return { success: true, user: data.user };
+    } catch (error) {
+      setError(error.message);
+      setLoading(false);
+      return { success: false, message: error.message };
+    }
+  }, []);
+
+  const register = useCallback(async (userData) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(userData)
+      });
+      
+      const data = await res.json().catch(() => ({}));
+      
+      if (!res.ok) {
+        const message = data.message || "Registration failed. Please try again.";
+        setError(message);
+        setLoading(false);
+        throw new Error(message);
+      }
+
+      setUser(data.user);
+      setError(null);
+      setAuthChecked(true);
+      setLoading(false);
+      return data;
+    } catch (error) {
+      console.error("Registration error:", error);
+      setError(error.message || "An unexpected error occurred during registration.");
+      setLoading(false);
+      throw error;
+    }
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -143,106 +151,111 @@ const register = useCallback(async (userData) => {
       setUser(null);
       setError(null);
       setAuthMode(null);
-      console.log(' Logout completed');
+      setAuthChecked(true);
+      console.log('✓ Logout completed');
       
     } catch (error) {
       console.error('Logout error:', error);
       setUser(null);
       setError(null);
       setAuthMode(null);
+      setAuthChecked(true);
     } finally {
       setIsLoggingOut(false);
     }
   }, []);
 
   const requestMagicLink = useCallback(async (email) => {
-  try {
-    setError(null);
+    try {
+      setError(null);
 
-    const res = await fetch(`${API_BASE_URL}/api/auth/request-magic-link`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email }),
-    });
+      const res = await fetch(`${API_BASE_URL}/api/auth/request-magic-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
 
-    const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      const message = data.message || "Failed to send magic link.";
+      if (!res.ok) {
+        const message = data.message || "Failed to send magic link.";
+        setError(message);
+        return { success: false, message };
+      }
+
+      return { success: true, message: data.message || "Magic link sent successfully." };
+    } catch (err) {
+      console.error("Magic link request error:", err);
+      const message = err.message || "Network error while sending magic link.";
       setError(message);
       return { success: false, message };
     }
+  }, []);
 
-    return { success: true, message: data.message || "login link sent successfully." };
-  } catch (err) {
-    console.error("login link request error:", err);
-    const message = err.message || "Network error while sending magic link.";
-    setError(message);
-    return { success: false, message };
-  }
-}, []);
+  const verifyMagicLink = useCallback(async (token) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-magic-link/${token}`, {
+        method: "GET",
+        credentials: "include",
+      });
 
-const verifyMagicLink = useCallback(async (token) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/verify-magic-link/${token}`, {
-      method: "GET",
-      credentials: "include",
-    });
+      const data = await res.json().catch(() => ({}));
 
-    const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        const message = data.message || "Invalid or expired link.";
+        setError(message);
+        setLoading(false);
+        return { success: false, message };
+      }
 
-    if (!res.ok || !data.success) {
-      const message = data.message || "Invalid or expired link.";
+      setUser(data.user);
+      setError(null);
+      setAuthChecked(true);
+      setLoading(false);
+      return { success: true, user: data.user };
+    } catch (err) {
+      console.error("Verify magic link error:", err);
+      const message = err.message || "Verification failed.";
       setError(message);
+      setLoading(false);
       return { success: false, message };
     }
-
-    setUser(data.user);
-    setError(null);
-    return { success: true, user: data.user };
-  } catch (err) {
-    console.error("Verify login link error:", err);
-    const message = err.message || "Verification failed.";
-    setError(message);
-    return { success: false, message };
-  }
-}, []);
-
-
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-
   useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
+      //console.log(' Initializing auth check...');
       fetchUser();
     }
-  }, []); 
+  }, [fetchUser]);
 
-const value = {
-  user,
-  loading,
-  error,
-  authMode,
-  setAuthMode,
-  isAuthenticated: !!user,
-  login,
-  register,
-  logout,
-  clearError,
-  refetchUser: () => fetchUser(true),
-  requestMagicLink, 
-  verifyMagicLink   
-};
-
+  const value = {
+    user,
+    loading,
+    error,
+    authMode,
+    setAuthMode,
+    isAuthenticated: !!user,
+    authChecked, 
+    login,
+    register,
+    logout,
+    clearError,
+    refetchUser: () => fetchUser(true),
+    requestMagicLink, 
+    verifyMagicLink   
+  };
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <Loading /> : children}
+      {loading && !authChecked ? <Loading /> : children}
     </AuthContext.Provider>
   );
 };
@@ -270,6 +283,7 @@ export const withAuth = (Component) => {
     return <Component {...props} />;
   };
 };
+
 
 export const useLoginForm = () => {
   const [formData, setFormData] = useState({

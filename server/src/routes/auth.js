@@ -41,6 +41,10 @@ const setTokenCookie = (res, token) => {
     token: token ? 'PRESENT' : 'MISSING'
   });
   res.cookie("token", token, config);
+
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
 };
 
 const authLimiter = rateLimit({
@@ -361,6 +365,7 @@ router.post("/login", authLimiter, async (req, res) => {
     );
 
     setTokenCookie(res, token);
+console.log('✓ Response headers:', res.getHeaders()['set-cookie']);
 
     res.status(200).json({
       success: true,

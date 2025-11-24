@@ -1,11 +1,13 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
 import { validateEmail, validateLoginPassword } from "../../utils/validation";
 import { useAuth } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import ForgotPasswordForm from "../auth/ForgotPasswordForm";
 
 const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
   const { login, requestMagicLink } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -17,18 +19,22 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
   const validate = () => {
     const newErrors = {};
     const emailError = validateEmail(formData.email);
-    const passwordError = validateLoginPassword(formData.password);
+    
+    if (emailError) {
+      setErrors({ email: emailError });
+      return false;
+    }
 
-   if (emailError) {
-  setErrors({ email: emailError });
-  return;
-}
+    if (!useMagicLink) {
+      const passwordError = validateLoginPassword(formData.password);
+      if (passwordError) {
+        newErrors.password = passwordError;
+      }
+    }
 
-    if (passwordError) newErrors.password = passwordError;
-
-    return newErrors;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
-
 
   const handleChange = (field) => (e) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -36,69 +42,80 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
     if (errors.submit) setErrors((prev) => ({ ...prev, submit: "" }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setErrors({});
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({});
 
-  const emailError = validateEmail(formData.email);
-  if (emailError) {
-    setErrors({ email: emailError });
-    return;
-  }
-
-  if (useMagicLink) {
-    await handleMagicLinkRequest();
-    return;
-  }
-
-  const passwordError = validateLoginPassword(formData.password);
-  if (passwordError) {
-    setErrors({ password: passwordError });
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const response = await login({
-      email: formData.email,
-      password: formData.password,
-    });
-
-    if (response?.success && onSuccess) onSuccess();
-    else setErrors({ submit: "Invalid email or password." });
-  } catch {
-    setErrors({ submit: "Something went wrong. Try again." });
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleMagicLinkRequest = async () => {
-  setLoading(true);
-  setErrors({});
-
-  const emailError = validateEmail(formData.email);
-  if (emailError) {
-    setErrors({ email: emailError });
-    setLoading(false);
-    return;
-  }
-
-  try {
-    const result = await requestMagicLink(formData.email); 
-
-    if (result.success) {
-      setMagicLinkSent(true);
-    } else {
-      setErrors({ submit: result.message || "Failed to send Login link." });
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      setErrors({ email: emailError });
+      return;
     }
-  } catch (error) {
-    console.error(" Network error:", error);
-    setErrors({ submit: "Network error. Check your connection." });
-  } finally {
-    setLoading(false);
-  }
-};
+
+    if (useMagicLink) {
+      await handleMagicLinkRequest();
+      return;
+    }
+
+    const passwordError = validateLoginPassword(formData.password);
+    if (passwordError) {
+      setErrors({ password: passwordError });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (response?.success) {
+        console.log('✓ Login successful, calling onSuccess');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Fallback navigation if onSuccess not provided
+          navigate('/dashboard', { replace: true });
+        }
+      } else {
+        setErrors({ submit: response?.message || "Invalid email or password." });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrors({ submit: "Something went wrong. Try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMagicLinkRequest = async () => {
+    setLoading(true);
+    setErrors({});
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) {
+      setErrors({ email: emailError });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await requestMagicLink(formData.email);
+
+      if (result.success) {
+        setMagicLinkSent(true);
+        // Don't call onSuccess here - user needs to click email link
+      } else {
+        setErrors({ submit: result.message || "Failed to send login link." });
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+      setErrors({ submit: "Network error. Check your connection." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleForgotPassword = () => setShowForgotPassword(true);
   const closeForgotPassword = () => setShowForgotPassword(false);
@@ -108,16 +125,16 @@ const handleMagicLinkRequest = async () => {
       {showForgotPassword ? (
         <ForgotPasswordForm onCancel={closeForgotPassword} />
       ) : (
-        <div className=" border bg-card text-card-foreground shadow-elegant border-1 shadow-card  shadow-[4px_4px_0_0_#000] ">
+        <div className="border bg-card text-card-foreground shadow-elegant border-1 shadow-card shadow-[4px_4px_0_0_#000]">
           {/* Header */}
           <div className="flex flex-col text-center p-6 space-y-2 pb-8">
-            <div className="mx-auto w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center ">
+            <div className="mx-auto w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center">
               <LogIn className="h-6 w-6 text-foreground" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground " style={{ fontFamily: "Space Grotesk" }}>
+            <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "Space Grotesk" }}>
               Sign in to your account
             </h1>
-            <p className="text-muted-foreground text-sm " style={{ fontFamily: "Space Grotesk" }}>
+            <p className="text-muted-foreground text-sm" style={{ fontFamily: "Space Grotesk" }}>
               Choose your preferred sign-in method
             </p>
 
@@ -127,7 +144,7 @@ const handleMagicLinkRequest = async () => {
                 type="button"
                 onClick={() => setUseMagicLink(true)}
                 className={`px-3 py-1 text-sm font-medium border shadow-card shadow-[2px_2px_0_0_#000] transition-colors
-      ${useMagicLink
+                  ${useMagicLink
                     ? "bg-gray-900 text-white"
                     : "bg-transparent text-foreground hover:bg-foreground/10"
                   }`}
@@ -141,7 +158,7 @@ const handleMagicLinkRequest = async () => {
                 type="button"
                 onClick={() => setUseMagicLink(false)}
                 className={`px-3 py-1 text-sm font-medium border shadow-card shadow-[2px_2px_0_0_#000] transition-colors
-      ${!useMagicLink
+                  ${!useMagicLink
                     ? "bg-gray-900 text-white"
                     : "bg-transparent text-foreground hover:bg-foreground/10"
                   }`}
@@ -154,15 +171,26 @@ const handleMagicLinkRequest = async () => {
 
           <div className="p-6 pt-0 space-y-6">
             {errors.submit && (
-              <div className="text-red-700 bg-red-100 border border-red-400 px-4 py-3 text-sm text-center font-medium shadow-card  shadow-[2px_2px_0_0_#f00] font-[Space_Grotesk] ">
+              <div className="text-red-700 bg-red-100 border border-red-400 px-4 py-3 text-sm text-center font-medium shadow-card shadow-[2px_2px_0_0_#f00] font-[Space_Grotesk]">
                 {errors.submit}
               </div>
             )}
 
             {magicLinkSent ? (
-              <p className="text-center text-sm text-green-600 font-medium">
-                Login link sent! Check your inbox to sign in.
-              </p>
+              <div className="text-center space-y-4">
+                <div className="text-green-600 font-medium text-sm">
+                  ✓ Login link sent! Check your inbox to sign in.
+                </div>
+                <p className="text-xs text-gray-600">
+                  The link will expire in 15 minutes. Make sure to check your spam folder.
+                </p>
+                <button
+                  onClick={() => setMagicLinkSent(false)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  ← Send another link
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Email */}
@@ -174,7 +202,7 @@ const handleMagicLinkRequest = async () => {
                     value={formData.email}
                     onChange={handleChange("email")}
                     required
-                    className="flex h-12 w-full border border-input bg-input px-3 py-2 pl-10 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring font-[Space_Grotesk] shadow-card  shadow-[2px_2px_0_0_#000] "
+                    className="flex h-12 w-full border border-input bg-input px-3 py-2 pl-10 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring font-[Space_Grotesk] shadow-card shadow-[2px_2px_0_0_#000]"
                   />
                   {errors.email && (
                     <p className="text-red-400 text-sm mt-1">{errors.email}</p>
@@ -191,7 +219,7 @@ const handleMagicLinkRequest = async () => {
                         placeholder="Password"
                         value={formData.password}
                         onChange={handleChange("password")}
-                        className="flex h-12 w-full border border-input bg-input px-3 py-2 pl-10 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring font-[Space_Grotesk] shadow-card  shadow-[2px_2px_0_0_#000] "
+                        className="flex h-12 w-full border border-input bg-input px-3 py-2 pl-10 placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring font-[Space_Grotesk] shadow-card shadow-[2px_2px_0_0_#000]"
                       />
                       <button
                         type="button"
@@ -234,7 +262,7 @@ const handleMagicLinkRequest = async () => {
             )}
 
             <p className="text-center text-sm mt-4 font-[Space_Grotesk]">
-              Don’t have an account?{" "}
+              Don't have an account?{" "}
               <button
                 type="button"
                 onClick={onToggleRegister}
