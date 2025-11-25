@@ -124,6 +124,7 @@ app.use("/uploads", (req, res, next) => {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.setHeader("Timing-Allow-Origin", "*"); 
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Cache-Control", "public, max-age=86400");
   next();

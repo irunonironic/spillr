@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useOwnerFeedback, useFeedbackAnswer } from "../hooks/useFeedback";
 import {
@@ -13,6 +14,8 @@ import {
   ArchiveRestore,
 } from "lucide-react";
 import ProfileCard from "./ProfileCard";
+import ShareModal from "./ShareModal";
+import { Share2 } from "lucide-react";
 
 export default function FeedbackManagement() {
   const { user } = useAuth();
@@ -44,8 +47,9 @@ export default function FeedbackManagement() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [initialLoad, setInitialLoad] = useState(true);
+  const [shareFeedback, setShareFeedback] = useState(null);
+  const [isSharing, setIsSharing] = useState(false);
 
-  // Auto-refresh with optimized interval
   useEffect(() => {
     if (filters.sort === "active" && !initialLoad) {
       const intervalId = setInterval(() => {
@@ -55,7 +59,6 @@ export default function FeedbackManagement() {
     }
   }, [filters.sort, refetch, initialLoad]);
 
-  // Mark initial load as complete
   useEffect(() => {
     if (!loading && feedbacks.length >= 0) {
       setInitialLoad(false);
@@ -64,9 +67,10 @@ export default function FeedbackManagement() {
 
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
+
     try {
       await refetch();
-      setLastUpdate(new Date());
+      await new Promise((resolve) => setTimeout(resolve, 300)); // ensures visible refresh cycle
     } catch (err) {
       console.error("Refresh failed:", err);
     } finally {
@@ -74,27 +78,32 @@ export default function FeedbackManagement() {
     }
   }, [refetch]);
 
-  const handleAnswerSubmit = useCallback(async (feedbackId) => {
-    try {
-      await submitAnswer(feedbackId, () => {
-        setShowAnswerForm(null);
-        resetAnswerForm();
-        refetch();
-      });
-    } catch (err) {
-      console.error("Answer submission error:", err);
-    }
-  }, [submitAnswer, resetAnswerForm, refetch]);
+  const handleAnswerSubmit = useCallback(
+    async (feedbackId) => {
+      try {
+        await submitAnswer(feedbackId, () => {
+          setShowAnswerForm(null);
+          resetAnswerForm();
+          refetch();
+        });
+      } catch (err) {
+        console.error("Answer submission error:", err);
+      }
+    },
+    [submitAnswer, resetAnswerForm, refetch],
+  );
 
-  const handleArchiveToggle = useCallback(async (feedbackId, currentlyArchived) => {
-    try {
-      await archiveFeedback(feedbackId, !currentlyArchived);
-      // Optimistic update
-      refetch();
-    } catch (err) {
-      console.error("Archive toggle error:", err);
-    }
-  }, [archiveFeedback, refetch]);
+  const handleArchiveToggle = useCallback(
+    async (feedbackId, currentlyArchived) => {
+      try {
+        await archiveFeedback(feedbackId, !currentlyArchived);
+        refetch();
+      } catch (err) {
+        console.error("Archive toggle error:", err);
+      }
+    },
+    [archiveFeedback, refetch],
+  );
 
   const getStatusBadge = useCallback((feedback) => {
     if (feedback.isAnswered)
@@ -118,21 +127,20 @@ export default function FeedbackManagement() {
     return parser.parseFromString(str, "text/html").body.textContent;
   }, []);
 
-  // Memoize empty state to prevent re-renders
   const emptyState = useMemo(() => {
     const messages = {
       active: {
         title: "No pending messages",
-        subtitle: "New messages will appear here"
+        subtitle: "New messages will appear here",
       },
       answered: {
         title: "No answered messages",
-        subtitle: "Answered messages will appear here"
+        subtitle: "Answered messages will appear here",
       },
       archived: {
         title: "No archived messages",
-        subtitle: "Archived messages will appear here"
-      }
+        subtitle: "Archived messages will appear here",
+      },
     };
 
     const current = messages[filters.sort] || messages.active;
@@ -140,12 +148,8 @@ export default function FeedbackManagement() {
     return (
       <div className="text-center py-12 sm:py-16">
         <MessageCircle className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-4" />
-        <h3 className="text-lg sm:text-xl font-bold mb-2">
-          {current.title}
-        </h3>
-        <p className="text-sm sm:text-base text-gray-600">
-          {current.subtitle}
-        </p>
+        <h3 className="text-lg sm:text-xl font-bold mb-2">{current.title}</h3>
+        <p className="text-sm sm:text-base text-gray-600">{current.subtitle}</p>
       </div>
     );
   }, [filters.sort]);
@@ -198,25 +202,39 @@ export default function FeedbackManagement() {
               <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
                 <div className="p-3 border-2 border-black bg-white">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">Total</span>
-                    <span className="text-base sm:text-lg font-bold">{stats?.total ?? 0}</span>
+                    <span className="text-xs sm:text-sm font-semibold">
+                      Total
+                    </span>
+                    <span className="text-base sm:text-lg font-bold">
+                      {stats?.total ?? 0}
+                    </span>
                   </div>
                 </div>
                 <div className="p-3 border-2 border-black bg-white">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">Answered</span>
-                    <span className="text-base sm:text-lg font-bold">{stats?.answered ?? 0}</span>
+                    <span className="text-xs sm:text-sm font-semibold">
+                      Answered
+                    </span>
+                    <span className="text-base sm:text-lg font-bold">
+                      {stats?.answered ?? 0}
+                    </span>
                   </div>
                 </div>
                 <div className="p-3 border-2 border-black bg-white">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">Pending</span>
-                    <span className="text-base sm:text-lg font-bold">{stats?.active ?? 0}</span>
+                    <span className="text-xs sm:text-sm font-semibold">
+                      Pending
+                    </span>
+                    <span className="text-base sm:text-lg font-bold">
+                      {stats?.active ?? 0}
+                    </span>
                   </div>
                 </div>
                 <div className="p-3 border-2 border-black bg-white">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">Answer rate</span>
+                    <span className="text-xs sm:text-sm font-semibold">
+                      Answer rate
+                    </span>
                     <span className="text-base sm:text-lg font-bold">
                       {Math.round((stats?.answerRate || 0) * 100) / 100}%
                     </span>
@@ -238,8 +256,16 @@ export default function FeedbackManagement() {
               <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 {[
                   { key: "active", label: "Active", count: stats?.active ?? 0 },
-                  { key: "answered", label: "Answered", count: stats?.answered ?? 0 },
-                  { key: "archived", label: "Archived", count: stats?.archived ?? 0 },
+                  {
+                    key: "answered",
+                    label: "Answered",
+                    count: stats?.answered ?? 0,
+                  },
+                  {
+                    key: "archived",
+                    label: "Archived",
+                    count: stats?.archived ?? 0,
+                  },
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -257,14 +283,15 @@ export default function FeedbackManagement() {
                   onClick={handleManualRefresh}
                   disabled={isRefreshing}
                   className="p-2 border-2 border-black bg-white hover:bg-gray-50 disabled:opacity-50"
-                  title="Refresh now"
+                  title={isRefreshing ? "Refreshing..." : "Refresh now"}
                 >
-                  <RefreshCw className={`w-3 h-3 ${isRefreshing ? "animate-spin" : ""}`} />
+                  <RefreshCw
+                    className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  />
                 </button>
               </div>
             </div>
 
-            {/* Body */}
             <div className="p-2 sm:p-6">
               {feedbacks.length === 0 ? (
                 emptyState
@@ -280,10 +307,11 @@ export default function FeedbackManagement() {
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
                             {getStatusBadge(feedback)}
                             <div className="text-xs text-gray-600">
-                              {new Date(feedback.createdAt).toLocaleDateString()} • {new Date(feedback.createdAt).toLocaleTimeString()}
+                              {new Date(
+                                feedback.createdAt,
+                              ).toLocaleDateString()}{" "}
                             </div>
                           </div>
-
                           <div className="bg-gray-50 px-3 py-2 sm:px-4 sm:py-3 rounded">
                             <p className="text-sm sm:text-base text-gray-900">
                               {decodeHTML(feedback.question)}
@@ -296,16 +324,31 @@ export default function FeedbackManagement() {
                                 {decodeHTML(feedback.answer)}
                               </p>
                               <p className="text-xs sm:text-sm text-gray-700 mt-2">
-                                Your response • {new Date(feedback.updatedAt).toLocaleDateString()}
+                                Your response •{" "}
+                                {new Date(
+                                  feedback.updatedAt,
+                                ).toLocaleDateString()}
                               </p>
                             </div>
                           )}
                         </div>
 
-                        <div className="flex flex-row sm:flex-col items-center gap-2 w-full sm:w-auto">
+                        <div className=" items-center gap-2 w-full sm:w-auto">
+                          <button
+                            onClick={() => setShareFeedback(feedback)}
+                            className="p-2 hover:bg-gray-100 rounded transition-colors"
+                            title="Share this feedback"
+                          >
+                            <Share2 className="w-5 sm:w-6 h-5 sm:h-6  hover:text-gray-700 text-black" />
+                          </button>
+
                           {!feedback.isAnswered && (
                             <button
-                              onClick={() => setShowAnswerForm((s) => (s === feedback._id ? null : feedback._id))}
+                              onClick={() =>
+                                setShowAnswerForm((s) =>
+                                  s === feedback._id ? null : feedback._id,
+                                )
+                              }
                               className="p-2 hover:bg-gray-100 rounded transition-colors"
                               title="Reply to this message"
                             >
@@ -315,7 +358,9 @@ export default function FeedbackManagement() {
 
                           {filters.sort === "archived" ? (
                             <button
-                              onClick={() => handleArchiveToggle(feedback._id, true)}
+                              onClick={() =>
+                                handleArchiveToggle(feedback._id, true)
+                              }
                               className="p-2 hover:bg-gray-100 rounded transition-colors"
                               title="Restore from archive"
                             >
@@ -323,11 +368,13 @@ export default function FeedbackManagement() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => handleArchiveToggle(feedback._id, false)}
+                              onClick={() =>
+                                handleArchiveToggle(feedback._id, false)
+                              }
                               className="p-2 hover:bg-gray-100 rounded transition-colors"
                               title="Move to archive"
                             >
-                              <Trash2 className="w-5 sm:w-6 h-5 sm:h-6 text-gray-600 hover:text-gray-800" />
+                              <Trash2 className="w-5 sm:w-6 h-5 sm:h-6 text-black hover:text-gray-800" />
                             </button>
                           )}
                         </div>
@@ -335,7 +382,9 @@ export default function FeedbackManagement() {
 
                       {showAnswerForm === feedback._id && (
                         <div className="mt-3 sm:mt-4 border-2 border-black p-3 sm:p-4 bg-gray-50 rounded">
-                          <h4 className="font-bold mb-2 text-sm sm:text-base">Write your response</h4>
+                          <h4 className="font-bold mb-2 text-sm sm:text-base">
+                            Write your response
+                          </h4>
                           <textarea
                             placeholder="Type your response..."
                             value={answerFormData.answer}
@@ -345,7 +394,9 @@ export default function FeedbackManagement() {
                           />
 
                           {answerErrors.answer && (
-                            <p className="text-red-500 text-xs mt-1">{answerErrors.answer}</p>
+                            <p className="text-red-500 text-xs mt-1">
+                              {answerErrors.answer}
+                            </p>
                           )}
 
                           <div className="mt-3 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
@@ -360,7 +411,9 @@ export default function FeedbackManagement() {
                             </button>
                             <button
                               onClick={() => handleAnswerSubmit(feedback._id)}
-                              disabled={answerLoading || !answerFormData.answer?.trim()}
+                              disabled={
+                                answerLoading || !answerFormData.answer?.trim()
+                              }
                               className="px-3 sm:px-4 py-2 border-2 border-black bg-black text-white text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
                             >
                               {answerLoading ? "Posting..." : "Post Response"}
@@ -374,13 +427,17 @@ export default function FeedbackManagement() {
                   {pagination?.totalPages > 1 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mt-4 sm:mt-6 border-t-2 border-gray-200 pt-4">
                       <div className="text-xs sm:text-sm text-gray-600">
-                        Showing page {filters.page} of {pagination?.totalPages ?? 1}
-                        {pagination?.totalFeedbacks > 0 && ` (${pagination.totalFeedbacks} total)`}
+                        Showing page {filters.page} of{" "}
+                        {pagination?.totalPages ?? 1}
+                        {pagination?.totalFeedbacks > 0 &&
+                          ` (${pagination.totalFeedbacks} total)`}
                       </div>
 
                       <div className="flex gap-2">
                         <button
-                          onClick={() => changePage(Math.max(1, filters.page - 1))}
+                          onClick={() =>
+                            changePage(Math.max(1, filters.page - 1))
+                          }
                           disabled={filters.page <= 1}
                           className="p-2 border-2 border-black bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
                           title="Previous page"
@@ -389,8 +446,17 @@ export default function FeedbackManagement() {
                         </button>
 
                         <button
-                          onClick={() => changePage(Math.min(pagination?.totalPages ?? 1, filters.page + 1))}
-                          disabled={filters.page >= (pagination?.totalPages ?? 1)}
+                          onClick={() =>
+                            changePage(
+                              Math.min(
+                                pagination?.totalPages ?? 1,
+                                filters.page + 1,
+                              ),
+                            )
+                          }
+                          disabled={
+                            filters.page >= (pagination?.totalPages ?? 1)
+                          }
                           className="p-2 border-2 border-black bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
                           title="Next page"
                         >
@@ -405,6 +471,15 @@ export default function FeedbackManagement() {
           </div>
         </main>
       </div>
+      {shareFeedback &&
+        createPortal(
+          <ShareModal
+            feedback={shareFeedback}
+            userProfile={user}
+            onClose={() => setShareFeedback(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

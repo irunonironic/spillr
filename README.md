@@ -1,5 +1,5 @@
 # Spillr  
-[🔗 https://spillr.vercel.app/](https://spillr.vercel.app/)
+[🔗 https://www.spillr.live/](https://www.spillr.live/)
 
 Spillr is a full-stack web application that allows users to create public “walls” to receive anonymous feedback. Visitors can send messages anonymously, and wall owners can view and reply through a secure dashboard.
 
