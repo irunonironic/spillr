@@ -19,8 +19,14 @@ export const AuthProvider = ({ children }) => {
   const isFetchingRef = useRef(false);
   const hasInitializedRef = useRef(false);
   const fetchAbortControllerRef = useRef(null);
+  const lastFetchTimeRef = useRef(0);
 
   const fetchUser = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastFetchTimeRef.current < 5000) {
+      //console.log('Skipping fetchUser - called too recently');
+      return;
+    }
     if (isFetchingRef.current && !force) {
       return;
     }
@@ -37,41 +43,50 @@ export const AuthProvider = ({ children }) => {
 
     fetchAbortControllerRef.current = new AbortController();
     isFetchingRef.current = true;
+    lastFetchTimeRef.current = now;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
         credentials: 'include',
-        signal: fetchAbortControllerRef.current.signal
+        signal: fetchAbortControllerRef.current.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
       
       if (res.ok) {
         const userData = await res.json();
         setUser(userData);
         setError(null);
-        //console.log('✓ User authenticated:', userData.email);
+        //console.log(' User authenticated:', userData.email);
       } else if (res.status === 401) {
         setUser(null);
         setError(null);
         console.log('ℹ User not authenticated');
       } else {
         console.error('Failed to fetch user, status:', res.status);
-        setUser(null);
+        if (!user) {
+          setUser(null);
+        }
       }
     } catch (err) {
       if (err.name === 'AbortError') {
         return;
       }
-      console.error('Failed to fetch user:', err);
-      setUser(null);
+        console.error('Network error during auth check:', err.message);
+      // Keep existing user state if we have it
+      if (!user) {
+        setUser(null);
+      }
     } finally {
       setLoading(false);
-      setAuthChecked(true); // NEW: Mark auth check as complete
+      setAuthChecked(true);
       isFetchingRef.current = false;
       fetchAbortControllerRef.current = null;
     }
-  }, [isLoggingOut]);
+  }, [isLoggingOut, user]);
 
-  const login = useCallback(async (credentials) => {
+ const login = useCallback(async (credentials) => {
     try {
       setError(null);
       setLoading(true);
@@ -96,6 +111,8 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setAuthChecked(true);
       setLoading(false);
+      lastFetchTimeRef.current = Date.now();
+      
       return { success: true, user: data.user };
     } catch (error) {
       setError(error.message);
@@ -129,6 +146,8 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setAuthChecked(true);
       setLoading(false);
+      lastFetchTimeRef.current = Date.now();
+      
       return data;
     } catch (error) {
       console.error("Registration error:", error);
@@ -152,14 +171,16 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setAuthMode(null);
       setAuthChecked(true);
-      console.log('✓ Logout completed');
+      lastFetchTimeRef.current = 0;
       
+      //console.log('Logout completed');
     } catch (error) {
       console.error('Logout error:', error);
       setUser(null);
       setError(null);
       setAuthMode(null);
       setAuthChecked(true);
+      lastFetchTimeRef.current = 0;
     } finally {
       setIsLoggingOut(false);
     }
@@ -214,6 +235,8 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       setAuthChecked(true);
       setLoading(false);
+      lastFetchTimeRef.current = Date.now();
+      
       return { success: true, user: data.user };
     } catch (err) {
       console.error("Verify magic link error:", err);
@@ -232,7 +255,7 @@ export const AuthProvider = ({ children }) => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
       //console.log(' Initializing auth check...');
-      fetchUser();
+      fetchUser(true);
     }
   }, [fetchUser]);
 
@@ -243,14 +266,14 @@ export const AuthProvider = ({ children }) => {
     authMode,
     setAuthMode,
     isAuthenticated: !!user,
-    authChecked, 
+    authChecked,
     login,
     register,
     logout,
     clearError,
     refetchUser: () => fetchUser(true),
-    requestMagicLink, 
-    verifyMagicLink   
+    requestMagicLink,
+    verifyMagicLink
   };
 
   return (
@@ -266,201 +289,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-export const withAuth = (Component) => {
-  return function AuthenticatedComponent(props) {
-    const { isAuthenticated, loading } = useAuth();
-
-    if (loading) {
-      return <Loading />;
-    }
-
-    if (!isAuthenticated) {
-      return <div>Please log in to access this page.</div>;
-    }
-
-    return <Component {...props} />;
-  };
-};
-
-
-export const useLoginForm = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const { login, clearError } = useAuth();
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (field) => (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-
-    if (errors.submit) {
-      setErrors(prev => ({
-        ...prev,
-        submit: ''
-      }));
-    }
-
-    clearError();
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    try {
-      setLoading(true);
-      setErrors({});
-      await login(formData);
-    } catch (error) {
-      setErrors({ submit: error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    formData,
-    errors,
-    loading,
-    handleChange,
-    handleSubmit
-  };
-};
-
-export const useRegisterForm = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    username:'',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const { register, clearError } = useAuth();
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
-    }
-
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.trim().length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
-    } else if (formData.username.trim().length > 30) {
-      newErrors.username = 'Username must be less than 30 characters';
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username.trim())) {
-      newErrors.username = 'Username can only contain letters, numbers, and underscores';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (field) => (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-    
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-
-    if (errors.submit) {
-      setErrors(prev => ({
-        ...prev,
-        submit: ''
-      }));
-    }
-
-    clearError();
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return Promise.reject(new Error('Validation failed'));
-    }
-
-    try {
-      setLoading(true);
-      setErrors({});
-      
-      const { confirmPassword, ...registerData } = formData;
-      const response = await register(registerData);
-      
-      return response;
-    } catch (error) {
-      setErrors({ submit: error.message });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    formData,
-    errors, 
-    loading,
-    handleChange,
-    handleSubmit
-  };
 };

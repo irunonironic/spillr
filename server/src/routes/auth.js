@@ -23,7 +23,6 @@ const getJWTSecret = () => {
   return JWT_SECRET;
 };
 
-
 const getCookieConfig = () => {
   return {
     httpOnly: true,
@@ -31,15 +30,19 @@ const getCookieConfig = () => {
     sameSite: isProduction ? "none" : "lax",
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000, 
-    domain: isProduction ? undefined : undefined
+    domain: undefined, 
   };
 };
+
 const setTokenCookie = (res, token) => {
-   const config = getCookieConfig();
+  const config = getCookieConfig();
+  
   console.log(' Setting cookie with config:', {
     ...config,
-    token: token ? 'PRESENT' : 'MISSING'
+    token: token ? 'PRESENT' : 'MISSING',
+    maxAge: `${config.maxAge / 1000 / 60 / 60 / 24} days`
   });
+  
   res.cookie("token", token, config);
 
   if (process.env.NODE_ENV === "production") {
