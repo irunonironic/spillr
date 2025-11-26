@@ -71,7 +71,7 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
       });
 
       if (response?.success) {
-        console.log('✓ Login successful, calling onSuccess');
+        //console.log('Login successful, calling onSuccess');
         if (onSuccess) {
           onSuccess();
         } else {
@@ -105,7 +105,7 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
 
       if (result.success) {
         setMagicLinkSent(true);
-        // Don't call onSuccess here - user needs to click email link
+       
       } else {
         setErrors({ submit: result.message || "Failed to send login link." });
       }

@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Send, MessageCircle, RefreshCw } from "lucide-react";
 import Footer from "./Footer";
 import { useAuth } from "../hooks/useAuth";
-import DynamicMeta from './DynamicMeta';
-import { getOGImageUrl } from '../utils/cloudinaryOG';
+import DynamicMeta from "./DynamicMeta";
+import { getOGImageUrl } from "../utils/cloudinaryOG";
 import { getImageUrl, generateInitialsAvatar } from "../utils/imageHelper";
 
 const PublicWallView = ({ logout }) => {
@@ -17,9 +17,8 @@ const PublicWallView = ({ logout }) => {
 
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const handleNavigation = (path) => navigate(path);
   const { slug } = useParams();
-  
+
   // State
   const [formData, setFormData] = useState({ question: "" });
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,7 @@ const PublicWallView = ({ logout }) => {
   const [loadingFeedback, setLoadingFeedback] = useState(true);
   const [sent, setSent] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -43,6 +42,8 @@ const PublicWallView = ({ logout }) => {
   const [imageError, setImageError] = useState(false);
   const navRefs = useRef({});
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   // Meta Data
   const ogTitle = userProfile?.name
     ? `${userProfile.name} (@${slug}) - Spillr`
@@ -52,8 +53,10 @@ const PublicWallView = ({ logout }) => {
     ? `${userProfile.bio} | Send anonymous messages to ${userProfile.name} on Spillr`
     : `Send anonymous messages to @${slug} on Spillr. Share your thoughts anonymously and get real feedback.`;
 
-  const ogImage = userProfile ? getOGImageUrl(userProfile) : '/og-image.png';
+  const ogImage = userProfile ? getOGImageUrl(userProfile) : "/og-image.png";
   const ogUrl = `${window.location.origin}/wall/${slug}`;
+
+  const handleNavigation = (path) => navigate(path);
 
   // Nav Indicator Logic
   const updateIndicator = (label) => {
@@ -73,15 +76,15 @@ const PublicWallView = ({ logout }) => {
   const getNavItems = (loggedIn) =>
     loggedIn
       ? [
-        { label: "Home", onClick: () => handleNavigation("/") },
-        { label: "Dashboard", onClick: () => handleNavigation("/dashboard") },
-        { label: "Settings", onClick: () => handleNavigation("/settings") },
-      ]
+          { label: "Home", onClick: () => handleNavigation("/") },
+          { label: "Dashboard", onClick: () => handleNavigation("/dashboard") },
+          { label: "Settings", onClick: () => handleNavigation("/settings") },
+        ]
       : [
-        { label: "Home", onClick: () => handleNavigation("/") },
-        { label: "Register", onClick: () => handleNavigation("/register") },
-        { label: "Login", onClick: () => handleNavigation("/login") },
-      ];
+          { label: "Home", onClick: () => handleNavigation("/") },
+          { label: "Register", onClick: () => handleNavigation("/register") },
+          { label: "Login", onClick: () => handleNavigation("/login") },
+        ];
 
   const items = getNavItems(isAuthenticated);
 
@@ -95,8 +98,6 @@ const PublicWallView = ({ logout }) => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [activeItem]);
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   // Fetch Profile
   const fetchUserProfile = useCallback(async () => {
@@ -114,6 +115,9 @@ const PublicWallView = ({ logout }) => {
           bio: decodeHTML(data.bio || ""),
         });
         setError("");
+      } else {
+        const data = await response.json();
+        setError(data.message || "Failed to load profile");
       }
     } catch (err) {
       console.error("Failed to fetch profile:", err);
@@ -123,41 +127,39 @@ const PublicWallView = ({ logout }) => {
     }
   }, [slug, API_BASE_URL]);
 
-  
-  const fetchAnsweredFeedback = useCallback(async (pageNum = 1) => {
-    if (!slug) return;
-    try {
-      if (pageNum === 1) setLoadingFeedback(true); 
+  // Fetch Answered Feedbacks (paged)
+  const fetchAnsweredFeedback = useCallback(
+    async (pageNum = 1) => {
+      if (!slug) return;
+      try {
+        if (pageNum === 1) setLoadingFeedback(true);
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/feedback/wall/${slug}?limit=50&page=${pageNum}`
-      );
+        const response = await fetch(
+          `${API_BASE_URL}/api/feedback/wall/${slug}?limit=50&page=${pageNum}`
+        );
 
-      if (response.ok) {
-        const data = await response.json();
-        const newFeedbacks = data.feedbacks || [];
+        if (response.ok) {
+          const data = await response.json();
+          const newFeedbacks = data.feedbacks || [];
 
-        setAnsweredFeedbacks(prev => {
-    
-           return pageNum === 1 ? newFeedbacks : [...prev, ...newFeedbacks];
-        });
+          setAnsweredFeedbacks((prev) =>
+            pageNum === 1 ? newFeedbacks : [...prev, ...newFeedbacks]
+          );
 
-        setHasMore(data.pagination?.hasNextPage || false); 
+          setHasMore(data.pagination?.hasNextPage || false);
+        } else {
+          console.error("Failed to fetch feedback:", await response.text());
+        }
+      } catch (err) {
+        console.error("Failed to fetch feedback:", err);
+      } finally {
+        setLoadingFeedback(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch feedback:", err);
-    } finally {
-      setLoadingFeedback(false);
-    }
-  }, [slug, API_BASE_URL]);
+    },
+    [slug, API_BASE_URL]
+  );
 
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchAnsweredFeedback(nextPage);
-  };
-
- 
+  // Initial load
   useEffect(() => {
     if (slug) {
       fetchUserProfile();
@@ -165,24 +167,41 @@ const PublicWallView = ({ logout }) => {
     }
   }, [slug, fetchUserProfile, fetchAnsweredFeedback]);
 
-  // Auto Refresh Logic 
+  // Auto Refresh Logic (only when on first page)
   useEffect(() => {
     if (!slug) return;
 
     const intervalId = setInterval(() => {
-   
       if (page === 1) {
-        //console.log("Auto-refreshing public feedback...");
         fetchAnsweredFeedback(1);
       }
-    }, 20000); 
+    }, 20000);
 
     return () => clearInterval(intervalId);
   }, [slug, fetchAnsweredFeedback, page]);
 
+  // Infinite Scroll: load next page when near bottom
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!hasMore || loadingFeedback) return;
+
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const threshold = document.body.offsetHeight - 300;
+
+      if (scrollPosition >= threshold) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchAnsweredFeedback(nextPage);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [page, hasMore, loadingFeedback, fetchAnsweredFeedback]);
+
   const handleManualRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    setPage(1); 
+    setPage(1);
     try {
       await fetchAnsweredFeedback(1);
     } catch (err) {
@@ -190,7 +209,7 @@ const PublicWallView = ({ logout }) => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [fetchUserProfile, fetchAnsweredFeedback]);
+  }, [fetchAnsweredFeedback]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -207,7 +226,7 @@ const PublicWallView = ({ logout }) => {
       return;
     }
 
-    if (!userProfile?.slug) {
+    if (!userProfile?.slug && !slug) {
       setError("Wall information not available");
       return;
     }
@@ -220,7 +239,7 @@ const PublicWallView = ({ logout }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question,
-          wallSlug: userProfile.slug,
+          wallSlug: userProfile?.slug || slug,
         }),
       });
 
@@ -233,9 +252,9 @@ const PublicWallView = ({ logout }) => {
       setSent(true);
       setFormData({ question: "" });
 
-      // Refresh just the top of the list after sending
+      // Refresh first page after sending
       setTimeout(() => {
-        if(page === 1) fetchAnsweredFeedback(1);
+        if (page === 1) fetchAnsweredFeedback(1);
       }, 3000);
     } catch (err) {
       console.error("Failed to send message:", err);
@@ -252,7 +271,8 @@ const PublicWallView = ({ logout }) => {
     }
   }, [sent]);
 
-  if (loadingProfile) {
+  // OLD FULLSCREEN SPINNER – keep or remove as you like
+  if (loadingProfile && !userProfile && !error) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
@@ -293,8 +313,8 @@ const PublicWallView = ({ logout }) => {
         image={ogImage}
         url={ogUrl}
       />
-      
-      {/* Header */}
+
+      {/* Header / Navbar */}
       <header className="fixed top-0 left-0 right-0 flex items-center bg-yellow-200 border-b-1 border-black h-16 z-50">
         <div className="w-full flex justify-between items-center px-4">
           <div
@@ -319,10 +339,11 @@ const PublicWallView = ({ logout }) => {
                 onClick={() => handleItemClick(item)}
                 onMouseEnter={() => updateIndicator(item.label)}
                 onMouseLeave={() => updateIndicator(activeItem)}
-                className={`px-4 py-1 pr-4 text-sm tracking-wide transition-colors duration-200 ${activeItem === item.label
+                className={`px-4 py-1 pr-4 text-sm tracking-wide transition-colors duration-200 ${
+                  activeItem === item.label
                     ? "text-black"
                     : "text-black hover:text-gray-800"
-                  }`}
+                }`}
               >
                 {item.label}
               </button>
@@ -349,7 +370,9 @@ const PublicWallView = ({ logout }) => {
               ) : (
                 <img
                   src={generateInitialsAvatar(
-                    decodeHTML(userProfile?.name || userProfile?.username || "User"),
+                    decodeHTML(
+                      userProfile?.name || userProfile?.username || "User"
+                    ),
                     128
                   )}
                   alt="Profile avatar"
@@ -399,9 +422,10 @@ const PublicWallView = ({ logout }) => {
                 type="submit"
                 disabled={loading || !formData.question.trim()}
                 className={`border-1 border-black px-6 py-3 font-bold shadow-[4px_4px_0_0_#000] transition
-                  ${sent
-                    ? "bg-green-400 text-black"
-                    : "bg-black text-white hover:bg-yellow-200 hover:text-black"
+                  ${
+                    sent
+                      ? "bg-green-400 text-black"
+                      : "bg-black text-white hover:bg-yellow-200 hover:text-black"
                   }
                   disabled:opacity-50`}
               >
@@ -416,8 +440,7 @@ const PublicWallView = ({ logout }) => {
           </p>
         </div>
 
-
-        {/* Answered Messages Section */}
+        {/* Answered Messages Section with Infinite Scroll */}
         <div className="border-4 border-black bg-white p-10 shadow-[8px_8px_0_0_#000]">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-black">Answered Messages</h3>
@@ -439,9 +462,6 @@ const PublicWallView = ({ logout }) => {
             </div>
           ) : answeredFeedbacks.length > 0 ? (
             <>
-              <div className="text-xs text-gray-500 mb-4 text-right">
-              </div>
-
               <div className="space-y-6">
                 {answeredFeedbacks.map((f) => (
                   <div key={f._id} className="border-b-2 border-black pb-4">
@@ -455,14 +475,10 @@ const PublicWallView = ({ logout }) => {
                 ))}
               </div>
 
-              {hasMore && (
-                <div className="mt-8 text-center">
-                  <button 
-                    onClick={handleLoadMore}
-                    className="px-6 py-3 border-2 border-black bg-white hover:bg-yellow-200 shadow-[4px_4px_0_0_#000] font-bold transition-all cursor-pointer"
-                  >
-                    Load More Messages
-                  </button>
+              {/* No Load More button anymore – infinite scroll handles pagination */}
+              {loadingFeedback && (
+                <div className="text-center py-4">
+                  <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto" />
                 </div>
               )}
             </>

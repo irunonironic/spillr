@@ -1,6 +1,6 @@
 // client/src/components/ShareModal.jsx
 import React, { useState, useRef, useEffect } from "react";
-import { X, Copy } from "lucide-react";
+import { X, Copy, Download } from "lucide-react";
 import html2canvas from "html2canvas";
 import ShareFeedbackCard from "./ShareFeedbackCard";
 import toast from "react-hot-toast";
@@ -12,7 +12,6 @@ const ShareModal = ({ feedback, userProfile, onClose }) => {
   const cardRef = useRef(null);
 
   useEffect(() => {
-    // Simpler scroll lock - just prevent scrolling without changing position
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -30,12 +29,19 @@ const ShareModal = ({ feedback, userProfile, onClose }) => {
 
     setIsGenerating(true);
     try {
+        const element = cardRef.current; 
+        
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: "#fefce8",
         scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true,
+        windowWidth: 1200,
+        width:element.scrollWidth,
+        height:element.scrollHeight,
+        foreignObjectRendering: false, 
+  removeContainer: true          
       });
 
       canvas.toBlob((blob) => {
@@ -88,7 +94,7 @@ const ShareModal = ({ feedback, userProfile, onClose }) => {
 
   return (
     <div
-      className="fixed top-0 left-0 w-[100vw] h-[100vh] flex items-center justify-center bg-black/60 backdrop-blur-sm z-9999 p-4"
+      className="fixed top-0 left-0 w-[100vw] h-[100vh] flex items-center justify-center bg-black/60  z-9999 p-4"
       onClick={onClose}
     >
       <div
@@ -108,7 +114,7 @@ const ShareModal = ({ feedback, userProfile, onClose }) => {
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 sm:p-2 hover:bg-yellow-300 transition-colors"
+            className="p-1.5 sm:p-2 hover:text-gray-500 transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -122,21 +128,23 @@ const ShareModal = ({ feedback, userProfile, onClose }) => {
             <div className="text-xs sm:text-sm font-semibold mb-3 text-gray-600">
               PREVIEW
             </div>
-            <div className="border-2 border-black shadow-[4px_4px_0_0_#000] overflow-hidden">
-              <div
-                ref={cardRef}
-                className="w-full"
-                style={{
-                  background: "linear-gradient(135deg, #FFFBEB, #FEF3C7)",
-                }}
-              >
-                <div className="inline-block min-w-full">
-                  <ShareFeedbackCard
-                    feedback={feedback}
-                    userProfile={userProfile}
-                  />
-                </div>
-              </div>
+           <div className="border-2 border-black shadow-[4px_4px_0_0_#000] overflow-visible">
+
+           <div className="overflow-x-auto">
+  <div
+    ref={cardRef}
+    style={{
+      width: "720px",
+      minWidth: "720px"
+    }}
+  >
+    <ShareFeedbackCard
+      feedback={feedback}
+      userProfile={userProfile}
+    />
+  </div>
+</div>
+
             </div>
             <p className="text-xs text-gray-500 mt-2 sm:hidden">
               Scroll horizontally to see full preview
@@ -160,7 +168,7 @@ const ShareModal = ({ feedback, userProfile, onClose }) => {
               className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-black bg-white hover:bg-gray-100 disabled:opacity-50 transition-colors"
               style={{ fontFamily: "Space Grotesk" }}
             >
-              <span>⬇</span>
+              <Download />
               <span>Download Image</span>
             </button>
           </div>

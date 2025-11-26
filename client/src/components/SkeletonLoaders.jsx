@@ -20,16 +20,6 @@ export const FeedbackListSkeleton = () => (
   </div>
 );
 
-export const ProfileCardSkeleton = () => (
-  <div className="w-full border-2 border-black animate-pulse">
-    <div className="w-56 h-56 bg-gray-200 mx-auto mt-4"></div>
-    <div className="p-3 space-y-3">
-      <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto"></div>
-      <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-      <div className="h-4 bg-gray-200 rounded w-full"></div>
-    </div>
-  </div>
-);
 
 export const StatsSkeleton = () => (
   <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3 animate-pulse">

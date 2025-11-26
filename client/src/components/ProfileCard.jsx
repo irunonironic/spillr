@@ -67,20 +67,29 @@ const userBio = decodeHTML(profile?.bio || "");
     }
   }, [sharedLink]);
 
-  if (loading && !profile) {
-    return (
-      <div className="p-2">
-        <div
-          className="w-full bg-white border border-black shadow-[4px_4px_0_0_#000] rounded-none p-4 animate-pulse"
-          style={{ fontFamily: "Space Grotesk" }}
-        >
-          <div className="h-40 w-full bg-gray-200 rounded-none mb-3"></div>
-          <div className="h-5 w-3/4 mx-auto bg-gray-200 rounded-none mb-2"></div>
-          <div className="h-4 w-1/2 mx-auto bg-gray-200 rounded-none"></div>
-        </div>
+if (loading && !profile) {
+  return (
+    <div className="w-full border-2 border-black p-4">
+      <div className="flex flex-col items-center gap-3 animate-pulse">
+        
+        {/* Avatar Skeleton */}
+        <div className="w-56 h-56 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer border-2 border-black" />
+
+        {/* Name Skeleton */}
+        <div className="h-4 w-32 rounded bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+
+        {/* Username Skeleton */}
+        <div className="h-3 w-24 rounded bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+
+        {/* Bio Skeleton */}
+        <div className="h-3 w-48 rounded bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+
 
   return (
     <div className="w-full border-2 border-black  ">

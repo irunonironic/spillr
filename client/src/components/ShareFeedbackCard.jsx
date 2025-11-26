@@ -18,7 +18,7 @@ const ShareFeedbackCard = ({ feedback, userProfile }) => {
         minHeight: "265px",
         padding: "32px",
         fontFamily: "Space Grotesk, sans-serif",
-        background: "linear-gradient(135deg, #FFFBEB, #FEF3C7)",
+        background: "linear-gradient(135deg, #FEF08A, #f9ebb1f0)",
         position: "relative",
         boxSizing: "border-box",
       }}

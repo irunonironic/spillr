@@ -16,6 +16,8 @@ import {
 import ProfileCard from "./ProfileCard";
 import ShareModal from "./ShareModal";
 import { Share2 } from "lucide-react";
+import { FeedbackListSkeleton } from "./SkeletonLoaders";
+
 
 export default function FeedbackManagement() {
   const { user } = useAuth();
@@ -48,7 +50,6 @@ export default function FeedbackManagement() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [initialLoad, setInitialLoad] = useState(true);
   const [shareFeedback, setShareFeedback] = useState(null);
-  const [isSharing, setIsSharing] = useState(false);
 
   useEffect(() => {
     if (filters.sort === "active" && !initialLoad) {
@@ -70,7 +71,7 @@ export default function FeedbackManagement() {
 
     try {
       await refetch();
-      await new Promise((resolve) => setTimeout(resolve, 300)); // ensures visible refresh cycle
+      await new Promise((resolve) => setTimeout(resolve, 300)); 
     } catch (err) {
       console.error("Refresh failed:", err);
     } finally {
@@ -154,18 +155,6 @@ export default function FeedbackManagement() {
     );
   }, [filters.sort]);
 
-  // Show skeleton during initial load only
-  if (initialLoad && loading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-foreground border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading messages...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error && initialLoad) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4 sm:p-8">
@@ -191,56 +180,65 @@ export default function FeedbackManagement() {
   return (
     <div className="min-h-screen">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 px-3 py-4 sm:px-4">
-        {/* LEFT SIDEBAR */}
         <aside className="lg:col-span-3 w-full">
           <div className="lg:sticky lg:top-20 w-full">
             <div className="border-2 border-black shadow-[6px_6px_0_0_#000] bg-white overflow-hidden w-full flex flex-col p-3 sm:p-5 lg:p-6">
               <div className="mb-6">
-                <ProfileCard />
+               <ProfileCard />
+
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
-                <div className="p-3 border-2 border-black bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">
-                      Total
-                    </span>
-                    <span className="text-base sm:text-lg font-bold">
-                      {stats?.total ?? 0}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-3 border-2 border-black bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">
-                      Answered
-                    </span>
-                    <span className="text-base sm:text-lg font-bold">
-                      {stats?.answered ?? 0}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-3 border-2 border-black bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">
-                      Pending
-                    </span>
-                    <span className="text-base sm:text-lg font-bold">
-                      {stats?.active ?? 0}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-3 border-2 border-black bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs sm:text-sm font-semibold">
-                      Answer rate
-                    </span>
-                    <span className="text-base sm:text-lg font-bold">
-                      {Math.round((stats?.answerRate || 0) * 100) / 100}%
-                    </span>
-                  </div>
-                </div>
-              </div>
+     {loading ? (
+  <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
+    {[1,2,3,4].map((i) => (
+      <div key={i} className="p-3 border-2 border-black bg-white animate-pulse">
+        <div className="flex items-center justify-between">
+          <span className="h-3 w-20 bg-gray-200 block rounded" />
+          <span className="h-5 w-10 bg-gray-300 block rounded" />
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
+    <div className="p-3 border-2 border-black bg-white">
+      <div className="flex items-center justify-between">
+        <span className="text-xs sm:text-sm font-semibold">Total</span>
+        <span className="text-base sm:text-lg font-bold">
+          {stats?.total ?? 0}
+        </span>
+      </div>
+    </div>
+
+    <div className="p-3 border-2 border-black bg-white">
+      <div className="flex items-center justify-between">
+        <span className="text-xs sm:text-sm font-semibold">Answered</span>
+        <span className="text-base sm:text-lg font-bold">
+          {stats?.answered ?? 0}
+        </span>
+      </div>
+    </div>
+
+    <div className="p-3 border-2 border-black bg-white">
+      <div className="flex items-center justify-between">
+        <span className="text-xs sm:text-sm font-semibold">Pending</span>
+        <span className="text-base sm:text-lg font-bold">
+          {stats?.active ?? 0}
+        </span>
+      </div>
+    </div>
+
+    <div className="p-3 border-2 border-black bg-white">
+      <div className="flex items-center justify-between">
+        <span className="text-xs sm:text-sm font-semibold">Answer rate</span>
+        <span className="text-base sm:text-lg font-bold">
+          {Math.round((stats?.answerRate || 0) * 100) / 100}%
+        </span>
+      </div>
+    </div>
+  </div>
+)}
+
             </div>
           </div>
         </aside>
@@ -286,17 +284,20 @@ export default function FeedbackManagement() {
                   title={isRefreshing ? "Refreshing..." : "Refresh now"}
                 >
                   <RefreshCw
-                    className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+                    className={`w-3 h-2  ${isRefreshing ? "animate-spin" : ""} scale-150`} strokeWidth={3}
                   />
                 </button>
               </div>
             </div>
 
             <div className="p-2 sm:p-6">
-              {feedbacks.length === 0 ? (
-                emptyState
-              ) : (
-                <div className="space-y-2 sm:space-y-6">
+              {loading ? (
+  <FeedbackListSkeleton />
+) : feedbacks.length === 0 ? (
+  emptyState
+) : (
+  <div className="space-y-2 sm:space-y-6">
+
                   {feedbacks.map((feedback) => (
                     <article
                       key={feedback._id}
