@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -47,10 +46,13 @@ const DynamicMeta = ({ title, description, image, url, type = 'website' }) => {
       updateMetaTag('og:image:width', '1200');
       updateMetaTag('og:image:height', '630');
       updateMetaTag('og:image:alt', title || 'Spillr - Anonymous Messaging');
+      updateMetaTag('og:image:type', 'image/png'); // X prefers knowing the type
     }
     
-    // Twitter Card tags
+    // Twitter Card tags - CRITICAL FOR X/TWITTER
     updateMetaTag('twitter:card', 'summary_large_image', false);
+    updateMetaTag('twitter:site', '@spillr', false); // Add your Twitter handle if you have one
+    updateMetaTag('twitter:creator', '@spillr', false); // Add your Twitter handle
     updateMetaTag('twitter:title', title, false);
     updateMetaTag('twitter:description', description, false);
     updateMetaTag('twitter:image', image, false);
@@ -59,6 +61,9 @@ const DynamicMeta = ({ title, description, image, url, type = 'website' }) => {
     // Additional Twitter tags
     if (image) {
       updateMetaTag('twitter:image:alt', title || 'Spillr', false);
+      // X/Twitter also wants to know dimensions
+      updateMetaTag('twitter:image:width', '1200', false);
+      updateMetaTag('twitter:image:height', '630', false);
     }
 
   }, [title, description, image, url, type, location]);

@@ -47,60 +47,52 @@ export const generateCloudinaryOGImage = ({ profilePicture, name, username, bio 
     return generateDefaultOGImage({ name, username, bio });
   }
 
-  const encodeName = encodeURIComponent(name || username);
-  const encodeUsername = encodeURIComponent(`@${username}`);
-  const encodeBio = bio ? encodeURIComponent(bio.substring(0, 100)) : '';
+  // Simplified text encoding for better compatibility
+  const encodeName = encodeURIComponent(name || username).replace(/%20/g, '+');
+  const encodeUsername = encodeURIComponent(`@${username}`).replace(/%20/g, '+');
+  const encodeBio = bio ? encodeURIComponent(bio.substring(0, 80)).replace(/%20/g, '+') : '';
 
   const baseUrl = `https://res.cloudinary.com/${cloudName}/image/upload`;
   
+  // Simplified transformation chain - X/Twitter is picky about complex transformations
   const transformations = [
-    'w_1200',
-    'h_630',
-    'c_fill',
-    'g_face',
-    'q_auto',
-    'f_auto',
-    'b_rgb:FCF194', // yellow-200 background
-    'bo_8px_solid_black',
-    `l_${publicId.replace(/\//g, ':')}`,
-    'w_200',
-    'h_200',
-    'c_fill',
-    'g_face',
-    'r_max',
-    'bo_4px_solid_black',
-    'g_north_west',
-    'x_80',
-    'y_80',
-    'co_rgb:000000', // black text
-    `l_text:Arial_60_bold:${encodeName}`,
-    'g_north_west',
-    'x_320',
-    'y_120',
-    `l_text:Arial_40:${encodeUsername}`,
-    'g_north_west',
-    'x_320',
-    'y_200',
-    ...(bio ? [
-      `l_text:Arial_28:${encodeBio}`,
-      'g_north_west',
-      'x_320',
-      'y_270',
-      'w_800',
-    ] : []),
-    'co_rgb:000000',
-    'l_text:Arial_36_bold:Spillr',
-    'g_south_east',
-    'x_60',
-    'y_60',
-    'l_text:Arial_24:Send%20me%20anonymous%20messages',
-    'g_south_west',
-    'x_60',
-    'y_60',
+    // Canvas setup
+    'w_1200,h_630,c_fill,b_rgb:FDE047', // Yellow background
+    
+    // Add profile picture
+    `l_${publicId.replace(/\//g, ':')},w_180,h_180,c_fill,g_face,r_max,x_-450,y_0`,
+    'fl_layer_apply',
+    
+    // Add name text
+    `l_text:Arial_48_bold:${encodeName},co_rgb:000000,x_-150,y_-60`,
+    'fl_layer_apply',
+    
+    // Add username
+    `l_text:Arial_32:${encodeUsername},co_rgb:000000,x_-150,y_0`,
+    'fl_layer_apply',
   ];
 
-  const transformationString = transformations.join(',');
-  return `${baseUrl}/${transformationString}/${publicId}`;
+  // Add bio if present
+  if (bio) {
+    transformations.push(
+      `l_text:Arial_24:${encodeBio},co_rgb:000000,w_600,c_fit,x_-150,y_60`,
+      'fl_layer_apply'
+    );
+  }
+
+  // Add branding
+  transformations.push(
+    'l_text:Arial_32_bold:Spillr,co_rgb:000000,g_south_east,x_40,y_40',
+    'fl_layer_apply',
+    
+    // Quality and format settings for social media
+    'f_auto,q_auto:good'
+  );
+
+  const transformationString = transformations.join('/');
+  
+  // Use a simple base image
+  return `${baseUrl}/${transformationString}/sample.jpg`;
 };
 
 export const generateDefaultOGImage = ({ name, username, bio = '' }) => {
@@ -109,42 +101,40 @@ export const generateDefaultOGImage = ({ name, username, bio = '' }) => {
     return '/og-image-default.png';
   }
 
-  const encodeName = encodeURIComponent(name || username);
-  const encodeUsername = encodeURIComponent(`@${username}`);
   const initials = getInitials(name || username);
-  const encodeInitials = encodeURIComponent(initials);
+  const encodeName = encodeURIComponent(name || username).replace(/%20/g, '+');
+  const encodeUsername = encodeURIComponent(`@${username}`).replace(/%20/g, '+');
+  const encodeInitials = encodeURIComponent(initials).replace(/%20/g, '+');
   
   const baseUrl = `https://res.cloudinary.com/${cloudName}/image/upload`;
   
   const transformations = [
-    'w_1200',
-    'h_630',
-    'c_fill',
-    'b_rgb:FCF194', // yellow-200 background
-    'bo_8px_solid_black',
-    'co_rgb:000000', // black text
-    `l_text:Arial_180_bold:${encodeInitials}`,
-    'g_west',
-    'x_100',
-    `l_text:Arial_60_bold:${encodeName}`,
-    'g_east',
-    'x_-100',
-    'y_-80',
-    `l_text:Arial_40:${encodeUsername}`,
-    'g_east',
-    'x_-100',
-    'y_0',
-    `l_text:Arial_32:Send%20anonymous%20messages`,
-    'g_east',
-    'x_-100',
-    'y_80',
-    `l_text:Arial_36_bold:Spillr`,
-    'g_south_east',
-    'x_60',
-    'y_60',
+    'w_1200,h_630,c_fill,b_rgb:FDE047',
+    
+    // Large initials on left
+    `l_text:Arial_140_bold:${encodeInitials},co_rgb:000000,g_west,x_80`,
+    'fl_layer_apply',
+    
+    // Name on right
+    `l_text:Arial_48_bold:${encodeName},co_rgb:000000,g_east,x_-80,y_-80`,
+    'fl_layer_apply',
+    
+    // Username
+    `l_text:Arial_32:${encodeUsername},co_rgb:000000,g_east,x_-80,y_0`,
+    'fl_layer_apply',
+    
+    // Tagline
+    'l_text:Arial_28:Send+anonymous+messages,co_rgb:000000,g_east,x_-80,y_80',
+    'fl_layer_apply',
+    
+    // Branding
+    'l_text:Arial_32_bold:Spillr,co_rgb:000000,g_south_east,x_40,y_40',
+    'fl_layer_apply',
+    
+    'f_auto,q_auto:good'
   ];
 
-  return `${baseUrl}/${transformations.join(',')}/sample.jpg`;
+  return `${baseUrl}/${transformations.join('/')}/sample.jpg`;
 };
 
 export const getOGImageUrl = (userProfile) => {
