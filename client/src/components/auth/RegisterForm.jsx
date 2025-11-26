@@ -244,7 +244,7 @@ const RegisterForm = ({
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full h-12 bg-yellow-200 shadow-card  shadow-[4px_4px_0_0_#000] disabled:bg-gray-900 disabled:text-white text-blackfont-medium  transition-colors cursor-pointer hover:border hover:border-2"style={{ fontFamily: "Space Grotesk" }}>
+              className="w-full h-12 mt-8 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]">
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>

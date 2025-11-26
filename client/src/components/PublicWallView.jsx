@@ -271,7 +271,6 @@ const PublicWallView = ({ logout }) => {
     }
   }, [sent]);
 
-  // OLD FULLSCREEN SPINNER – keep or remove as you like
   if (loadingProfile && !userProfile && !error) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
@@ -421,11 +420,11 @@ const PublicWallView = ({ logout }) => {
               <button
                 type="submit"
                 disabled={loading || !formData.question.trim()}
-                className={`border-1 border-black px-6 py-3 font-bold shadow-[4px_4px_0_0_#000] transition
+                className={`mt-8 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]
                   ${
                     sent
                       ? "bg-green-400 text-black"
-                      : "bg-black text-white hover:bg-yellow-200 hover:text-black"
+                      : "bg-black text-black hover:bg-yellow-200 hover:text-black"
                   }
                   disabled:opacity-50`}
               >
@@ -447,7 +446,12 @@ const PublicWallView = ({ logout }) => {
             <button
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              className="p-2 border-2 border-black bg-white hover:bg-gray-50 disabled:opacity-50"
+              className="p-2  bg-white border-1
+    shadow-[2px_2px_0_0_#000]
+    hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px]
+    active:shadow-[0px_0px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]
+    transition-all duration-150 ease-out transform
+    disabled:opacity-50 disabled:cursor-not-allowed select-none"
               title="Refresh messages"
             >
               <RefreshCw

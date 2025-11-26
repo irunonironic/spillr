@@ -18,7 +18,6 @@ import ShareModal from "./ShareModal";
 import { Share2 } from "lucide-react";
 import { FeedbackListSkeleton } from "./SkeletonLoaders";
 
-
 export default function FeedbackManagement() {
   const { user } = useAuth();
   const feedbackIdentifier = user?.username || user?.slug;
@@ -71,7 +70,7 @@ export default function FeedbackManagement() {
 
     try {
       await refetch();
-      await new Promise((resolve) => setTimeout(resolve, 300)); 
+      await new Promise((resolve) => setTimeout(resolve, 300));
     } catch (err) {
       console.error("Refresh failed:", err);
     } finally {
@@ -91,7 +90,7 @@ export default function FeedbackManagement() {
         console.error("Answer submission error:", err);
       }
     },
-    [submitAnswer, resetAnswerForm, refetch],
+    [submitAnswer, resetAnswerForm, refetch]
   );
 
   const handleArchiveToggle = useCallback(
@@ -103,7 +102,7 @@ export default function FeedbackManagement() {
         console.error("Archive toggle error:", err);
       }
     },
-    [archiveFeedback, refetch],
+    [archiveFeedback, refetch]
   );
 
   const getStatusBadge = useCallback((feedback) => {
@@ -184,61 +183,70 @@ export default function FeedbackManagement() {
           <div className="lg:sticky lg:top-20 w-full">
             <div className="border-2 border-black shadow-[6px_6px_0_0_#000] bg-white overflow-hidden w-full flex flex-col p-3 sm:p-5 lg:p-6">
               <div className="mb-6">
-               <ProfileCard />
-
+                <ProfileCard />
               </div>
 
-     {loading ? (
-  <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
-    {[1,2,3,4].map((i) => (
-      <div key={i} className="p-3 border-2 border-black bg-white animate-pulse">
-        <div className="flex items-center justify-between">
-          <span className="h-3 w-20 bg-gray-200 block rounded" />
-          <span className="h-5 w-10 bg-gray-300 block rounded" />
-        </div>
-      </div>
-    ))}
-  </div>
-) : (
-  <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
-    <div className="p-3 border-2 border-black bg-white">
-      <div className="flex items-center justify-between">
-        <span className="text-xs sm:text-sm font-semibold">Total</span>
-        <span className="text-base sm:text-lg font-bold">
-          {stats?.total ?? 0}
-        </span>
-      </div>
-    </div>
+              {loading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3 border-2 border-black bg-white animate-pulse"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="h-3 w-20 bg-gray-200 block rounded" />
+                        <span className="h-5 w-10 bg-gray-300 block rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3">
+                  <div className="p-3 border-2 border-black bg-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-semibold">
+                        Total
+                      </span>
+                      <span className="text-base sm:text-lg font-bold">
+                        {stats?.total ?? 0}
+                      </span>
+                    </div>
+                  </div>
 
-    <div className="p-3 border-2 border-black bg-white">
-      <div className="flex items-center justify-between">
-        <span className="text-xs sm:text-sm font-semibold">Answered</span>
-        <span className="text-base sm:text-lg font-bold">
-          {stats?.answered ?? 0}
-        </span>
-      </div>
-    </div>
+                  <div className="p-3 border-2 border-black bg-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-semibold">
+                        Answered
+                      </span>
+                      <span className="text-base sm:text-lg font-bold">
+                        {stats?.answered ?? 0}
+                      </span>
+                    </div>
+                  </div>
 
-    <div className="p-3 border-2 border-black bg-white">
-      <div className="flex items-center justify-between">
-        <span className="text-xs sm:text-sm font-semibold">Pending</span>
-        <span className="text-base sm:text-lg font-bold">
-          {stats?.active ?? 0}
-        </span>
-      </div>
-    </div>
+                  <div className="p-3 border-2 border-black bg-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-semibold">
+                        Pending
+                      </span>
+                      <span className="text-base sm:text-lg font-bold">
+                        {stats?.active ?? 0}
+                      </span>
+                    </div>
+                  </div>
 
-    <div className="p-3 border-2 border-black bg-white">
-      <div className="flex items-center justify-between">
-        <span className="text-xs sm:text-sm font-semibold">Answer rate</span>
-        <span className="text-base sm:text-lg font-bold">
-          {Math.round((stats?.answerRate || 0) * 100) / 100}%
-        </span>
-      </div>
-    </div>
-  </div>
-)}
-
+                  <div className="p-3 border-2 border-black bg-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-semibold">
+                        Answer rate
+                      </span>
+                      <span className="text-base sm:text-lg font-bold">
+                        {Math.round((stats?.answerRate || 0) * 100) / 100}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </aside>
@@ -250,41 +258,49 @@ export default function FeedbackManagement() {
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-extrabold">Messages</h1>
               </div>
+<div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+  {[
+    { key: "active", label: "Active", count: stats?.active ?? 0 },
+    { key: "answered", label: "Answered", count: stats?.answered ?? 0 },
+    { key: "archived", label: "Archived", count: stats?.archived ?? 0 },
+  ].map((tab) => (
+    <button
+      key={tab.key}
+      onClick={() => updateFilters({ sort: tab.key, page: 1 })}
+      className={`
+        px-3 py-1 text-sm font-medium border border-black bg-white
+        shadow-[2px_2px_0_0_#000]
+        hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px]
+        active:shadow-[0px_0px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]
+        transition-all duration-150 ease-out transform select-none whitespace-nowrap
+        ${
+          filters.sort === tab.key
+            ? "text-black font-semibold ring-1 ring-black"
+            : "text-gray-600"
+        }
+      `}
+    >
+      {tab.label} ({tab.count})
+    </button>
+  ))}
 
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                {[
-                  { key: "active", label: "Active", count: stats?.active ?? 0 },
-                  {
-                    key: "answered",
-                    label: "Answered",
-                    count: stats?.answered ?? 0,
-                  },
-                  {
-                    key: "archived",
-                    label: "Archived",
-                    count: stats?.archived ?? 0,
-                  },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => updateFilters({ sort: tab.key, page: 1 })}
-                    className={`px-3 sm:px-3 py-1 text-xs sm:text-sm font-semibold border-2 border-black whitespace-nowrap ${
-                      filters.sort === tab.key
-                        ? "bg-black text-white"
-                        : "bg-white text-black"
-                    }`}
-                  >
-                    {tab.label} ({tab.count})
-                  </button>
-                ))}
+
                 <button
                   onClick={handleManualRefresh}
                   disabled={isRefreshing}
-                  className="p-2 border-2 border-black bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className=" p-2  bg-white border-1
+    shadow-[2px_2px_0_0_#000]
+    hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px]
+    active:shadow-[0px_0px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]
+    transition-all duration-150 ease-out transform
+    disabled:opacity-50 disabled:cursor-not-allowed select-none"
                   title={isRefreshing ? "Refreshing..." : "Refresh now"}
                 >
                   <RefreshCw
-                    className={`w-3 h-2  ${isRefreshing ? "animate-spin" : ""} scale-150`} strokeWidth={3}
+                    className={`w-3 h-2  ${
+                      isRefreshing ? "animate-spin" : ""
+                    } scale-150`}
+                    strokeWidth={3}
                   />
                 </button>
               </div>
@@ -292,12 +308,11 @@ export default function FeedbackManagement() {
 
             <div className="p-2 sm:p-6">
               {loading ? (
-  <FeedbackListSkeleton />
-) : feedbacks.length === 0 ? (
-  emptyState
-) : (
-  <div className="space-y-2 sm:space-y-6">
-
+                <FeedbackListSkeleton />
+              ) : feedbacks.length === 0 ? (
+                emptyState
+              ) : (
+                <div className="space-y-2 sm:space-y-6">
                   {feedbacks.map((feedback) => (
                     <article
                       key={feedback._id}
@@ -309,7 +324,7 @@ export default function FeedbackManagement() {
                             {getStatusBadge(feedback)}
                             <div className="text-xs text-gray-600">
                               {new Date(
-                                feedback.createdAt,
+                                feedback.createdAt
                               ).toLocaleDateString()}{" "}
                             </div>
                           </div>
@@ -327,7 +342,7 @@ export default function FeedbackManagement() {
                               <p className="text-xs sm:text-sm text-gray-700 mt-2">
                                 Your response •{" "}
                                 {new Date(
-                                  feedback.updatedAt,
+                                  feedback.updatedAt
                                 ).toLocaleDateString()}
                               </p>
                             </div>
@@ -347,7 +362,7 @@ export default function FeedbackManagement() {
                             <button
                               onClick={() =>
                                 setShowAnswerForm((s) =>
-                                  s === feedback._id ? null : feedback._id,
+                                  s === feedback._id ? null : feedback._id
                                 )
                               }
                               className="p-2 hover:bg-gray-100 rounded transition-colors"
@@ -451,8 +466,8 @@ export default function FeedbackManagement() {
                             changePage(
                               Math.min(
                                 pagination?.totalPages ?? 1,
-                                filters.page + 1,
-                              ),
+                                filters.page + 1
+                              )
                             )
                           }
                           disabled={
@@ -479,7 +494,7 @@ export default function FeedbackManagement() {
             userProfile={user}
             onClose={() => setShareFeedback(null)}
           />,
-          document.body,
+          document.body
         )}
     </div>
   );

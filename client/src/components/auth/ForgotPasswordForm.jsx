@@ -116,7 +116,7 @@ const ForgotPasswordForm = ({ onCancel }) => {
             <button
               type="submit"
               disabled={loading || !email.trim()}
-              className="w-full h-12 bg-yellow-200 shadow-card shadow-[4px_4px_0_0_#000] disabled:cursor-not-allowed text-black font-medium transition-colors cursor-pointer hover:border hover:border-2"
+              className="w-full h-12 mt-8 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk"
               style={{ fontFamily: "Space Grotesk" }}
             >
               {loading ? (

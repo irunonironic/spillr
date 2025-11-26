@@ -19,7 +19,7 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
   const validate = () => {
     const newErrors = {};
     const emailError = validateEmail(formData.email);
-    
+
     if (emailError) {
       setErrors({ email: emailError });
       return false;
@@ -76,13 +76,15 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
           onSuccess();
         } else {
           // Fallback navigation if onSuccess not provided
-          navigate('/dashboard', { replace: true });
+          navigate("/dashboard", { replace: true });
         }
       } else {
-        setErrors({ submit: response?.message || "Invalid email or password." });
+        setErrors({
+          submit: response?.message || "Invalid email or password.",
+        });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       setErrors({ submit: "Something went wrong. Try again." });
     } finally {
       setLoading(false);
@@ -105,7 +107,6 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
 
       if (result.success) {
         setMagicLinkSent(true);
-       
       } else {
         setErrors({ submit: result.message || "Failed to send login link." });
       }
@@ -131,10 +132,16 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
             <div className="mx-auto w-12 h-12 bg-secondary rounded-2xl flex items-center justify-center">
               <LogIn className="h-6 w-6 text-foreground" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "Space Grotesk" }}>
+            <h1
+              className="text-2xl font-semibold text-foreground"
+              style={{ fontFamily: "Space Grotesk" }}
+            >
               Sign in to your account
             </h1>
-            <p className="text-muted-foreground text-sm" style={{ fontFamily: "Space Grotesk" }}>
+            <p
+              className="text-muted-foreground text-sm"
+              style={{ fontFamily: "Space Grotesk" }}
+            >
               Choose your preferred sign-in method
             </p>
 
@@ -143,10 +150,16 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
               <button
                 type="button"
                 onClick={() => setUseMagicLink(true)}
-                className={`px-3 py-1 text-sm font-medium border shadow-card shadow-[2px_2px_0_0_#000] transition-colors
-                  ${useMagicLink
-                    ? "bg-gray-900 text-white"
-                    : "bg-transparent text-foreground hover:bg-foreground/10"
+                className={` px-3 py-1 text-sm font-medium border border-black bg-white
+      shadow-[2px_2px_0_0_#000]
+      hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px]
+      active:shadow-[0px_0px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]
+      transition-all duration-150 ease-out transform select-none
+     
+                  ${
+                    useMagicLink
+                      ? "bg-gray-900 text-black"
+                      : "bg-transparent text-foreground hover:bg-foreground/10"
                   }`}
                 style={{ fontFamily: "Space Grotesk" }}
               >
@@ -157,10 +170,15 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
               <button
                 type="button"
                 onClick={() => setUseMagicLink(false)}
-                className={`px-3 py-1 text-sm font-medium border shadow-card shadow-[2px_2px_0_0_#000] transition-colors
-                  ${!useMagicLink
-                    ? "bg-gray-900 text-white"
-                    : "bg-transparent text-foreground hover:bg-foreground/10"
+                className={`px-3 py-1 text-sm font-medium border border-black bg-white
+      shadow-[2px_2px_0_0_#000]
+      hover:shadow-[1px_1px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px]
+      active:shadow-[0px_0px_0_0_#000] active:translate-x-[2px] active:translate-y-[2px]
+      transition-all duration-150 ease-out transform select-none
+                  ${
+                    !useMagicLink
+                      ? "bg-gray-900 black"
+                      : "bg-transparent text-foreground hover:bg-foreground/10"
                   }`}
                 style={{ fontFamily: "Space Grotesk" }}
               >
@@ -182,7 +200,8 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
                   ✓ Login link sent! Check your inbox to sign in.
                 </div>
                 <p className="text-xs text-gray-600">
-                  The link will expire in 15 minutes. Make sure to check your spam folder.
+                  The link will expire in 15 minutes. Make sure to check your
+                  spam folder.
                 </p>
                 <button
                   onClick={() => setMagicLinkSent(false)}
@@ -250,13 +269,13 @@ const LoginForm = ({ onSuccess, onToggleRegister, onCancel }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-12 bg-yellow-200 border shadow-[4px_4px_0_0_#000] hover:bg-yellow-300 transition font-[Space_Grotesk]"
+                  className="w-full h-12 mt-8 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]"
                 >
                   {loading
                     ? "Processing..."
                     : useMagicLink
-                      ? "Send Sign-In Link"
-                      : "Sign In"}
+                    ? "Send Sign-In Link"
+                    : "Sign In"}
                 </button>
               </form>
             )}

@@ -227,13 +227,13 @@ const handleDeleteAccountNow = () => {
 
         <div className="flex justify-end gap-3">
           <button
-            className="px-4 py-2 bg-gray-200 border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-gray-300 transition font-medium"
+            className="px-4 py-2 bg-gray-200 mt-8 px-4 py-2 text-black border-2  shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]"
             onClick={() => toast.dismiss(t.id)}
           >
             Cancel
           </button>
           <button
-            className="px-4 py-2 bg-red-600 text-white border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-red-500 transition font-medium"
+            className="ppx-4 py-2 bg-gray-200 mt-8 px-4 py-2 text-black border-2  shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]x-4 py-2 bg-red-600 text-white border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-red-500 transition font-medium font-[Space_Grotesk]"
             onClick={async () => {
               const passwordInput = document.getElementById(`delete-password-${t.id}`);
               const confirmInput = document.getElementById(`delete-confirm-${t.id}`);
@@ -284,6 +284,7 @@ const handleDeleteAccountNow = () => {
   };
 
   return (
+    <div>
     <div
       className="min-h-screen bg-gray-50"
       style={{ fontFamily: "Space Grotesk" }}
@@ -301,7 +302,7 @@ const handleDeleteAccountNow = () => {
 
           <button
             onClick={() => navigate("/dashboard")}
-            className="px-6 py-2 bg-black text-white font-light shadow-[3px_3px_0_0_#000] hover:bg-yellow-200 hover:text-black transition"
+            className="px-6 py-2 bg-black text-black mt-8 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]"
           >
             Go Back
           </button>
@@ -447,7 +448,7 @@ const handleDeleteAccountNow = () => {
                   <button
                     onClick={handleSaveProfile}
                     disabled={savingProfile}
-                    className="w-40 h-12 bg-yellow-200 shadow-card  shadow-[4px_4px_0_0_#000] disabled:bg-gray-900 disabled:text-white text-black font-medium  transition-colors cursor-pointer hover:border hover:border-2"
+                    className="w-40 h-12 mt-2 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]"
                   >
                     {savingProfile ? "Saving..." : "Save Changes"}
                   </button>
@@ -537,7 +538,7 @@ const handleDeleteAccountNow = () => {
                   <button
                     type="submit"
                     disabled={passwordLoading}
-                    className="w-40 h-12 bg-yellow-200 shadow-[4px_4px_0_0_#000] disabled:bg-gray-900 disabled:text-white text-black font-medium transition-colors cursor-pointer hover:border hover:border-2"
+                    className="w-50 h-12 mt-2 px-3 py-1 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]"
                   >
                     {passwordLoading ? "Updating..." : "Update Password"}
                   </button>
@@ -582,7 +583,7 @@ const handleDeleteAccountNow = () => {
                   <button
                     onClick={handleSaveNotifications}
                     disabled={savingNotifications}
-                    className="w-40 h-12 bg-yellow-200 shadow-card  shadow-[4px_4px_0_0_#000] disabled:bg-gray-900 disabled:text-white text-black font-medium  transition-colors cursor-pointer hover:border hover:border-2"
+                    className="w-40 h-12 mt-8 px-4 py-2 text-black border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] hover:shadow-[3px_3px_0_0_#000] hover:translate-y-[3px] hover:translate-x-[3px] active:shadow-[0px_0px_0_0_#000] active:translate-y-[6px] active:translate-x-[6px] transition-all duration-200 ease-out text-lg font-medium font-[Space_Grotesk]"
                   >
                     {savingNotifications ? "Saving..." : "Save Settings"}
                   </button>
@@ -611,10 +612,18 @@ const handleDeleteAccountNow = () => {
                       <li>All feedback received and sent</li>
                       <li>All reactions and engagement data</li>
                     </ul>
-                    <button
-                      onClick={handleDeleteAccountNow}
-                      className="px-6 py-2 bg-red-600 text-white h-12 shadow-[4px_4px_0_0_#000] font-medium transition-colors cursor-pointer hover:border hover:border-2 hover:border-black flex items-center gap-2"
-                    >
+                  <button
+  onClick={handleDeleteAccountNow}
+  className={`
+    px-6 py-2 h-12 flex items-center gap-2
+    bg-red-600 text-white font-medium
+    border-2 border-black
+    shadow-[4px_4px_0_0_#000]
+    hover:shadow-[2px_2px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px]
+    active:shadow-[0px_0px_0_0_#000] active:translate-x-[4px] active:translate-y-[4px]
+    transition-all duration-150 ease-out transform select-none
+  `}
+>  
                       <Trash2 className="w-4 h-4" />
                       Delete My Account
                     </button>
@@ -633,7 +642,9 @@ const handleDeleteAccountNow = () => {
 )}
 
       </div>
-      <Footer />
+      
+    </div>
+    <Footer />
     </div>
   );
 };
