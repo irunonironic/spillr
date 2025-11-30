@@ -52,3 +52,4 @@ yarn.lock
 pnpm-lock.yaml
 
 *.xml 
+DS_Store
