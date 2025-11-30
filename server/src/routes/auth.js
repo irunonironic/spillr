@@ -319,9 +319,11 @@ router.post("/login", authLimiter, async (req, res) => {
   try {
     const { email: rawEmail, password } = req.body;
     const email = rawEmail?.trim();
-
-    if (!validateEmail(email) || !password) {
-      return res.status(400).json({ message: "Valid email and password required" });
+ if (!validateEmail(email) || !password) {
+      return res.status(400).json({ 
+        success: false,  
+        message: "Valid email and password required" 
+      });
     }
 
     const normalizedEmail = email.toLowerCase();
@@ -331,28 +333,39 @@ router.post("/login", authLimiter, async (req, res) => {
       .select("+passwordHash")
       .lean(); 
 
+    
     if (!user || !user.isActive) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-
-    if (!user.passwordHash) {
-      return res.status(400).json({
-        message: "Please reset your password",
+      return res.status(400).json({ 
+        success: false,  
+        message: "Invalid credentials" 
       });
     }
 
+
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        success: false,  
+        message: "Please reset your password",
+      });
+    }
     let isMatch = false;
     try {
       isMatch = await bcrypt.compare(password, user.passwordHash);
       console.log('Password comparison result:', isMatch);
     } catch (compareError) {
       console.error(' Password comparison error:', compareError);
-      return res.status(500).json({ message: "Authentication error" });
+      return res.status(500).json({ 
+        success: false,  
+        message: "Authentication error" 
+      });
     }
 
     if (!isMatch) {
       console.log(' Password mismatch for:', normalizedEmail);
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ 
+        success: false,  
+        message: "Invalid email or password" 
+      });
     }
 
     await User.updateOne(
@@ -382,7 +395,10 @@ console.log('✓ Response headers:', res.getHeaders()['set-cookie']);
     });
   } catch (err) {
     console.error(" Login error:", err);
-    res.status(500).json({ message: "Login failed" });
+   res.status(500).json({ 
+      success: false, 
+      message: "Login failed" 
+    });
   }
 });
 
@@ -649,5 +665,235 @@ router.get("/verify-magic-link/:token", async(req,res) => {
     res.status(500).json({ message: "Verification failed" });
   }
 })
+
+
+router.post("/request-magic-link-register", authLimiter, async (req, res) => {
+  try {
+    const { email: rawEmail, name: rawName } = req.body;
+    const email = rawEmail?.trim()?.toLowerCase();
+    const name = rawName?.trim();
+
+    if (!email || !validateEmail(email)) {
+      return res.status(400).json({ message: "Valid email is required" });
+    }
+
+    if (!name || !validateName(name)) {
+      return res.status(400).json({ message: "Name is required (2-50 characters)" });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: "An account with this email already exists. Please login instead.",
+        shouldRedirectToLogin: true 
+      });
+    }
+
+    console.log(" Creating registration magic link for:", email);
+
+    const magicToken = crypto.randomBytes(32).toString("hex");
+  
+    const registrationData = {
+      email,
+      name,
+      magicLinkToken: magicToken,
+      magicLinkExpires: Date.now() + 15 * 60 * 1000,
+      createdAt: Date.now()
+    };
+
+    await User.create({
+      email,
+      name,
+      username: `temp_${Date.now()}`, 
+      passwordHash: await User.hashPassword(crypto.randomBytes(32).toString("hex")), 
+      magicLinkToken: magicToken,
+      magicLinkExpires: Date.now() + 15 * 60 * 1000,
+      isActive: false, 
+      isPendingRegistration: true 
+    });
+
+    const magicLink = `${process.env.FRONTEND_URL}/verify-magic-register?token=${magicToken}`;
+
+    const emailPromise = sendEmail({
+      to: email,
+      subject: "Complete Your Spillr Registration",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Welcome to Spillr, ${name}!</h2>
+          <p>Click the button below to complete your registration:</p>
+          <a href="${magicLink}" 
+             style="display: inline-block; background-color: #000; color: #fff; 
+                    padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+            Complete Registration
+          </a>
+          <p style="color: #666; font-size: 14px;">This link will expire in 15 minutes.</p>
+          <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+        </div>
+      `,
+      text: `Welcome to Spillr, ${name}!\n\nComplete your registration: ${magicLink}\n\nThis link expires in 15 minutes.`,
+    });
+
+    res.status(200).json({
+      message: "Registration link sent to your email",
+      success: true,
+    });
+
+    emailPromise.catch(err => {
+      console.error("Email send error:", err.message);
+    });
+
+  } catch (err) {
+    console.error(" Magic link registration request error:", err);
+    res.status(500).json({ message: "Failed to process registration" });
+  }
+});
+
+
+router.get("/verify-magic-register/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+    const pendingUser = await User.findOne({
+      magicLinkToken: token,
+      magicLinkExpires: { $gt: Date.now() },
+      isPendingRegistration: true,
+      isActive: false
+    });
+
+    if (!pendingUser) {
+      return res.status(400).json({ 
+        message: "Invalid or expired registration link" 
+      });
+    }
+
+    console.log(" Completing registration for:", pendingUser.email);
+
+    const baseUsername = pendingUser.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .substring(0, 20);
+    
+    const uniqueUsername = await generateUniqueUsernameForRegistration(baseUsername);
+
+    pendingUser.username = uniqueUsername;
+    pendingUser.magicLinkToken = undefined;
+    pendingUser.magicLinkExpires = undefined;
+    pendingUser.isActive = true;
+    pendingUser.isPendingRegistration = false;
+    pendingUser.lastLogin = new Date();
+    
+    await pendingUser.save();
+
+    console.log(" Generated username:", uniqueUsername);
+
+    // Create wall for user
+    let wallResult = { success: false };
+    const maxWallAttempts = 3;
+    
+    for (let attempt = 1; attempt <= maxWallAttempts; attempt++) {
+      try {
+        console.log(` Wall creation attempt ${attempt}/${maxWallAttempts}`);
+        wallResult = await createWallForUser(
+          pendingUser._id, 
+          uniqueUsername, 
+          pendingUser.name
+        );
+        
+        if (wallResult.success) {
+          console.log(' Wall created successfully');
+          break;
+        }
+        
+        if (attempt < maxWallAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      } catch (wallError) {
+        console.error(` Wall creation attempt ${attempt} failed:`, wallError.message);
+      }
+    }
+
+    const JWT_SECRET = getJWTSecret();
+    const authToken = jwt.sign(
+      { id: pendingUser._id, email: pendingUser.email },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    setTokenCookie(res, authToken);
+
+    res.json({
+      success: true,
+      message: "Registration completed successfully",
+      user: {
+        id: pendingUser._id,
+        name: pendingUser.name,
+        email: pendingUser.email,
+        username: uniqueUsername
+      },
+      wallCreated: wallResult?.success || false,
+      slug: wallResult?.wall?.slug || null
+    });
+
+  } catch (err) {
+    console.error(" Magic link registration verification error:", err);
+    res.status(500).json({ message: "Registration verification failed" });
+  }
+});
+
+async function generateUniqueUsernameForRegistration(baseName) {
+
+  let cleanBase = baseName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .substring(0, 20);
+
+  if (cleanBase.length < 3) {
+    cleanBase = `user${cleanBase}`;
+  }
+
+  let username = cleanBase;
+  let exists = await User.findOne({ username });
+  
+  if (!exists) {
+    return username;
+  }
+  
+  for (let i = 0; i < 10; i++) {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    username = `${cleanBase}${randomSuffix}`;
+
+    if (username.length > 30) {
+      username = username.substring(0, 26) + randomSuffix;
+    }
+    
+    exists = await User.findOne({ username });
+    if (!exists) {
+      return username;
+    }
+  }
+
+  const timestamp = Date.now().toString().slice(-6);
+  username = `${cleanBase.substring(0, 24)}${timestamp}`;
+  
+  return username;
+}
+
+async function cleanupExpiredPendingRegistrations() {
+  try {
+    const result = await User.deleteMany({
+      isPendingRegistration: true,
+      isActive: false,
+      magicLinkExpires: { $lt: Date.now() }
+    });
+    
+    if (result.deletedCount > 0) {
+      console.log(` Cleaned up ${result.deletedCount} expired pending registrations`);
+    }
+  } catch (err) {
+    console.error(" Error cleaning up pending registrations:", err);
+  }
+}
+
+setInterval(cleanupExpiredPendingRegistrations, 60 * 60 * 1000);
 
 export default router;

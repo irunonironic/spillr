@@ -192,26 +192,26 @@ if (loading) {
                 </div>
               </header>
 
-           
-              {authMode === "login" && (
-                <Modal onClose={handleCloseModal}>
-                  <LoginForm
-                    onSuccess={handleSuccess}
-                    onToggleRegister={() => setAuthMode("register")}
-                    onCancel={handleCloseModal}
-                  />
-                </Modal>
-              )}
+           {authMode === "login" && (
+          <Modal onClose={handleCloseModal}>
+            <LoginForm
+              onSuccess={handleSuccess}  
+              onToggleRegister={() => setAuthMode("register")}
+              onCancel={handleCloseModal}
+            />
+          </Modal>
+        )}
 
-              {authMode === "register" && (
-                <Modal onClose={handleCloseModal}>
-                  <RegisterForm
-                    onSuccess={handleSuccess}
-                    onToggleLogin={() => setAuthMode("login")}
-                    onCancel={handleCloseModal}
-                  />
-                </Modal>
-              )}
+        {authMode === "register" && (
+          <Modal onClose={handleCloseModal}>
+            <RegisterForm
+              onSuccess={handleSuccess}
+              onToggleLogin={() => setAuthMode("login")}
+              onCancel={handleCloseModal}
+            />
+          </Modal>
+        )}
+
 
               <div className="flex flex-col items-center justify-center max-w-2xl text-center px-4">
          
@@ -360,7 +360,7 @@ if (loading) {
         <Footer />
       </Suspense>
 
-      <style jsx>{`
+      <style >{`
         @keyframes fadeIn {
           from {
             opacity: 0;

@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }) => {
       } else if (res.status === 401) {
         setUser(null);
         setError(null);
-        console.log('ℹ User not authenticated');
+        //console.log('ℹ User not authenticated');
       } else {
         console.error('Failed to fetch user, status:', res.status);
         if (!user) {
@@ -86,40 +86,46 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isLoggingOut, user]);
 
- const login = useCallback(async (credentials) => {
-    try {
-      setError(null);
-      setLoading(true);
 
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(credentials)
-      });
+const login = useCallback(async (credentials) => {
+  try {
+   // console.log(" useAuth: Starting login...");
+    setError(null);
 
-      const data = await res.json().catch(() => ({}));
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(credentials)
+    });
 
-      if (!res.ok || !data.user) {
-        const message = data.message || "Invalid email or password";
-        setError(message);
-        setLoading(false);
-        return { success: false, message };
-      }
+   // console.log("useAuth: Response status:", res.status);
 
-      setUser(data.user);
-      setError(null);
-      setAuthChecked(true);
-      setLoading(false);
-      lastFetchTimeRef.current = Date.now();
-      
-      return { success: true, user: data.user };
-    } catch (error) {
-      setError(error.message);
-      setLoading(false);
-      return { success: false, message: error.message };
+    const data = await res.json().catch(() => ({}));
+   // console.log("useAuth: Response data:", data);
+
+    // Check for failure
+    if (!res.ok || data.success === false || !data.user) {
+      const message = data.message || "Invalid email or password";
+     // console.log("useAuth: Login failed:", message);
+      setError(message);
+      return { success: false, message };
     }
-  }, []);
+
+
+    setUser(data.user);
+    setError(null);
+    setAuthChecked(true);
+    lastFetchTimeRef.current = Date.now();
+    
+    return { success: true, user: data.user };
+  } catch (error) {
+    //console.error(" useAuth: Network error:", error);
+    setError(error.message);
+    return { success: false, message: error.message || "Network error" };
+  }
+}, []);
+
 
   const register = useCallback(async (userData) => {
     try {
@@ -214,6 +220,41 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const requestMagicLinkRegister = useCallback(async ({ email, name }) => {
+    try {
+      setError(null);
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/request-magic-link-register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, name }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const message = data.message || "Failed to send registration link.";
+        setError(message);
+        return { 
+          success: false, 
+          message,
+          shouldRedirectToLogin: data.shouldRedirectToLogin || false
+        };
+      }
+
+      return { 
+        success: true, 
+        message: data.message || "Registration link sent successfully." 
+      };
+    } catch (err) {
+      console.error("Magic link registration request error:", err);
+      const message = err.message || "Network error while sending registration link.";
+      setError(message);
+      return { success: false, message };
+    }
+  }, []);
+
   const verifyMagicLink = useCallback(async (token) => {
     try {
       setLoading(true);
@@ -273,7 +314,8 @@ export const AuthProvider = ({ children }) => {
     clearError,
     refetchUser: () => fetchUser(true),
     requestMagicLink,
-    verifyMagicLink
+    verifyMagicLink,
+    requestMagicLinkRegister
   };
 
   return (
@@ -479,6 +521,7 @@ export const useRegisterForm = () => {
     }
   };
 
+  
   return {
     formData,
     errors, 

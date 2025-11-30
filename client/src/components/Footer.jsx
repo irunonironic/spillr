@@ -8,13 +8,13 @@ const Footer = () => {
     return (
       <div className="min-h-screen bg-yellow-200 flex items-center justify-center p-6">
         <div className="max-w-4xl w-full border-4 border-black bg-yellow-200 shadow-[12px_12px_0_0_#000] p-10 space-y-10 font-mono text-black">
-          <h1 className="text-5xl font-extrabold uppercase tracking-tight border-b-4 border-black pb-4">
+          <h1 className="text-2xl font-extrabold uppercase tracking-tight border-b-4 border-black pb-4">
             Privacy Policy
           </h1>
 
-          <section className="space-y-8 text-base leading-relaxed">
+          <section className="space-y-6 text-base leading-relaxed text-sm">
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Definitions
               </h2>
               <p>
@@ -24,7 +24,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Information You Share
               </h2>
               <p>
@@ -34,21 +34,21 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Information We Collect
               </h2>
               <p>IP Address, Cookies, Timestamps, and analytics data.</p>
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Third-Party Services
               </h2>
               <p>Email providers, analytics and push notifications.</p>
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Opting Out
               </h2>
               <p>
@@ -58,7 +58,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Policy Changes
               </h2>
               <p>We may update this policy at any time without prior notice.</p>
@@ -66,7 +66,7 @@ const Footer = () => {
           </section>
 
           <section className="pt-6 border-t-4 border-black">
-            <h2 className="text-2xl font-bold uppercase mb-2">Contact Us</h2>
+            <h2 className="text-md font-bold uppercase mb-2">Contact Us</h2>
             <p>
               Email:{" "}
               <a
@@ -86,13 +86,13 @@ const Footer = () => {
     return (
       <div className="min-h-screen bg-yellow-200 flex items-center justify-center p-6">
         <div className="max-w-4xl w-full border-4 border-black bg-yellow-200 shadow-[12px_12px_0_0_#000] p-10 space-y-10 font-mono text-black">
-          <h1 className="text-5xl font-extrabold uppercase tracking-tight border-b-4 border-black pb-4">
+          <h1 className="text-2xl font-extrabold uppercase tracking-tight border-b-4 border-black pb-4">
             Terms & Conditions
           </h1>
 
-          <section className="space-y-8 text-base leading-relaxed">
+          <section className="space-y-6 text-base leading-relaxed text-sm">
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Introduction
               </h2>
               <p>
@@ -102,7 +102,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 User Responsibilities
               </h2>
               <p>
@@ -112,7 +112,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Acceptable Use
               </h2>
               <p>
@@ -122,7 +122,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Content Guidelines
               </h2>
               <p>
@@ -131,7 +131,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Intellectual Property Rights
               </h2>
               <p>
@@ -141,7 +141,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Disclaimers & Limitation of Liability
               </h2>
               <p>
@@ -151,7 +151,7 @@ const Footer = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold uppercase border-b-2 border-black inline-block mb-2">
+              <h2 className="text-md font-bold uppercase border-b-2 border-black inline-block mb-2">
                 Termination
               </h2>
               <p>We may terminate access without notice for breach of terms.</p>
@@ -159,7 +159,7 @@ const Footer = () => {
           </section>
 
           <section className="pt-6 border-t-4 border-black">
-            <h2 className="text-2xl font-bold uppercase mb-2">Contact Us</h2>
+            <h2 className="text-md font-bold uppercase mb-2">Contact Us</h2>
             <p>
               Email:{" "}
               <a
@@ -180,7 +180,7 @@ const Footer = () => {
       className="max-w-3xl mx-auto p-8 border-2 border-black bg-yellow-200 shadow-[6px_6px_0_0_#000] space-y-6 font-mono text-black"
       style={{ fontFamily: "Space Grotesk" }}
     >
-      <h1 className="text-4xl font-extrabold uppercase tracking-tight border-b-2 border-black pb-2">
+      <h1 className="text-2xl font-extrabold uppercase tracking-tight border-b-2 border-black pb-2">
         Contact Us
       </h1>
 

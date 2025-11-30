@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: {
       type: String,
       required: function () {
-        return !this.googleId;
+        return !this.googleId && !this.isPendingRegistration; 
       },
       select: false,
     },
@@ -97,6 +97,12 @@ const userSchema = new mongoose.Schema(
     },
     magicLinkToken:{type: String, select: false},
     magicLinkExpires:{type: Date, select:false},
+
+    isPendingRegistration: { 
+      type: Boolean, 
+      default: false,
+      index: true 
+    },
     
     accountDeletionTokenExpiry: {
       type: Date,
@@ -137,7 +143,11 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   }
 };
 
-userSchema.index({ blockedUsers: 1 }); 
+userSchema.index({ 
+  isPendingRegistration: 1, 
+  isActive: 1, 
+  magicLinkExpires: 1 
+});
 
 const User = mongoose.model("User", userSchema);
 
