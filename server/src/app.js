@@ -144,6 +144,10 @@ app.use("/api/public/wall",WallRoute);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/settings", userSettings);
 
+app.get("/health", (req, res) => {
+  res.status(200).send("ok");
+});
+
 
 app.use("/api/", (req, res) => {
   res.status(404).json({ message: "API route not found" });
@@ -188,10 +192,6 @@ app.use((err, req, res, next) => {
 
   res.status(statusCode).json(response);
   
-});
-
-app.get("/health", (req, res) => {
-  res.status(200).send("ok");
 });
 
 
