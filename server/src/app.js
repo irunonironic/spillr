@@ -190,4 +190,9 @@ app.use((err, req, res, next) => {
   
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).send("ok");
+});
+
+
 export default app;
