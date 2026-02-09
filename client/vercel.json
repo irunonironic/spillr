@@ -1,5 +1,18 @@
 {
   "version": 2,
+
+  "redirects": [
+  {
+    "source": "/:path*",
+    "has": [
+      { "type": "host", "value": "spillr.live" }
+    ],
+    "destination": "https://www.spillr.live/:path*",
+    "permanent": true
+  }
+]
+,
+
   "rewrites": [
     {
       "source": "/api/:path*",
